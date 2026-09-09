@@ -1,0 +1,29 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Backend
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.key
+
+# Firebird data
+database/firebird/data/
+*.fdb
+*.fbk
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

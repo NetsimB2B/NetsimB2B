@@ -1,0 +1,18 @@
+services:
+  firebird:
+    image: firebirdsql/firebird:5.0.4
+    container_name: netsim-b2b-firebird
+    restart: unless-stopped
+    ports:
+      - "3050:3050"
+    environment:
+      FIREBIRD_ROOT_PASSWORD: ${FIREBIRD_ROOT_PASSWORD}
+      FIREBIRD_DATABASE: ${FIREBIRD_DATABASE}
+    volumes:
+      - ./database/firebird/data:/var/lib/firebird/data
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+

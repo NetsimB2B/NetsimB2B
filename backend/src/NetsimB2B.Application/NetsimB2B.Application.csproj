@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../NetsimB2B.Domain/NetsimB2B.Domain.csproj" />
+  </ItemGroup>
+</Project>
+

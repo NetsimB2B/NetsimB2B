@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NetsimB2B.Api/NetsimB2B.Api.csproj" />
+    <Project Path="src/NetsimB2B.Application/NetsimB2B.Application.csproj" />
+    <Project Path="src/NetsimB2B.Domain/NetsimB2B.Domain.csproj" />
+    <Project Path="src/NetsimB2B.Infrastructure/NetsimB2B.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NetsimB2B.UnitTests/NetsimB2B.UnitTests.csproj" />
+    <Project Path="tests/NetsimB2B.IntegrationTests/NetsimB2B.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
+

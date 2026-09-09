@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="FirebirdSql.Data.FirebirdClient" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NetsimB2B.Application/NetsimB2B.Application.csproj" />
+  </ItemGroup>
+</Project>
