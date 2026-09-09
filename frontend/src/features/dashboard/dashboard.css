@@ -1,0 +1,27 @@
+.dashboard-metrics { margin-bottom: 18px; }
+.dashboard-metrics .card { display: grid; gap: 7px; }
+.dashboard-metrics a, .section-heading a { color: var(--primary-hover); font-size: 12px; font-weight: 700; text-decoration: none; }
+.dashboard-metrics .card > span { color: var(--muted); font-size: 12px; }
+.metric-success { color: var(--success); }
+.dashboard-banner { display: flex; min-height: 210px; align-items: center; justify-content: space-between; overflow: hidden; margin-bottom: 18px; padding: 30px 40px; background: linear-gradient(110deg, #fff7f3, #fff 68%); }
+.dashboard-banner h2 { max-width: 560px; margin: 15px 0 7px; font-size: 25px; }
+.dashboard-banner p { margin: 0 0 20px; color: var(--muted); }
+.dashboard-banner > span { margin-right: 8%; font-size: 110px; opacity: .2; transform: rotate(-18deg); }
+.dashboard-columns { display: grid; grid-template-columns: 1.25fr .75fr; gap: 18px; align-items: start; }
+.section-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.section-heading h2 { margin-bottom: 4px; font-size: 18px; }
+.section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
+.dashboard-order { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--border); text-decoration: none; }
+.dashboard-order:last-child { border-bottom: 0; }
+.dashboard-order > div { display: grid; gap: 4px; }
+.dashboard-order small { color: var(--muted); }
+.frequent-products { display: grid; gap: 8px; }
+.frequent-products a { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; text-decoration: none; }
+.frequent-products a:hover { background: #fafbfc; }
+.frequent-products > a > span { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 7px; background: #f2f4f7; font-size: 22px; }
+.frequent-products div { display: grid; gap: 3px; }
+.frequent-products strong { font-size: 13px; }
+.frequent-products small { color: var(--muted); }
+
+@media (max-width: 950px) { .dashboard-columns { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .dashboard-banner { padding: 24px 20px; } .dashboard-banner > span { display: none; } .dashboard-order { grid-template-columns: 1fr auto; } .dashboard-order .badge { grid-column: 2; } }

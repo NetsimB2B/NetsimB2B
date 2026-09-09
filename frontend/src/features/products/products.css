@@ -1,0 +1,34 @@
+.stock-filter { display: flex; align-items: center; gap: 7px; color: #475467; font-size: 13px; font-weight: 650; }
+.stock-filter input { accent-color: var(--primary); }
+.product-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.product-card { position: relative; overflow: hidden; padding: 0; }
+.favorite-button { position: absolute; top: 10px; right: 10px; z-index: 1; display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--border); border-radius: 50%; color: #98a2b3; background: rgb(255 255 255 / 90%); cursor: pointer; }
+.favorite-button.is-favorite { color: var(--primary); }
+.product-visual { display: grid; height: 165px; place-items: center; background: linear-gradient(145deg, #f8fafc, #eef2f6); font-size: 56px; text-decoration: none; }
+.product-card-body { display: grid; gap: 12px; padding: 16px; }
+.product-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.product-name { min-height: 42px; font-size: 15px; font-weight: 750; line-height: 1.4; text-decoration: none; }
+.product-name:hover { color: var(--primary-hover); }
+.product-buy { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding-top: 4px; }
+.product-buy > div { display: grid; gap: 3px; }
+.product-buy small, .detail-price small { color: var(--muted); font-size: 11px; }
+.product-buy strong { font-size: 16px; }
+.product-buy .button { min-height: 36px; padding: 0 11px; font-size: 12px; }
+.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; color: var(--muted); font-size: 13px; }
+.pagination > div { display: flex; align-items: center; gap: 12px; }
+.breadcrumb { display: flex; gap: 8px; margin-bottom: 20px; color: var(--muted); font-size: 13px; }
+.breadcrumb a { color: var(--primary-hover); }
+.product-detail { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(360px, 1.1fr); gap: 40px; }
+.product-detail-visual { display: grid; min-height: 480px; place-items: center; background: linear-gradient(145deg, #f8fafc, #eef2f6); font-size: 120px; }
+.product-detail-copy { display: flex; max-width: 620px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 18px; }
+.product-detail-copy h1 { margin: 0; font-size: 34px; }
+.product-detail-copy > p { margin: 0; color: var(--muted); line-height: 1.7; }
+.detail-price { display: grid; gap: 2px; }
+.detail-price strong { font-size: 30px; }
+.detail-price span { color: var(--muted); font-size: 11px; }
+.detail-actions { display: flex; gap: 10px; width: 100%; max-width: 350px; }
+.quantity-input { width: 88px; }
+
+@media (max-width: 1200px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .product-detail { grid-template-columns: 1fr; } .product-detail-visual { min-height: 300px; } }
+@media (max-width: 520px) { .product-grid { grid-template-columns: 1fr; } .product-visual { height: 190px; } .pagination { align-items: flex-start; flex-direction: column; gap: 12px; } }

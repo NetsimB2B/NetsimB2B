@@ -1,40 +1,84 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { clearMockSession } from "@/features/auth/mockAuth";
+import { useCompanyContext } from "@/features/company-context/store";
+import { portalService } from "@/shared/services/portalService";
 
 const navigation = [
-  ["/dashboard", "Gösterge Paneli"],
-  ["/urunler", "Ürünler"],
-  ["/hizli-siparis", "Hızlı Sipariş"],
-  ["/sepet", "Sepetim"],
-  ["/teklifler", "Tekliflerim"],
-  ["/siparisler", "Siparişlerim"],
+  ["Ana Menü", [["/dashboard", "⌂", "Gösterge Paneli"]]],
+  ["Alışveriş", [["/urunler", "□", "Ürünler"], ["/hizli-siparis", "+", "Hızlı Sipariş"], ["/favoriler", "♡", "Favoriler"], ["/sepet", "▣", "Sepetim"]]],
+  ["Ticari İşlemler", [["/teklifler", "◇", "Tekliflerim"], ["/siparisler", "≡", "Siparişlerim"], ["/sevkiyatlar", "→", "Sevkiyatlar"], ["/faturalar", "▤", "Faturalar"]]],
+  ["Finans", [["/finans", "₺", "Cari Hesap"]]],
+  ["Diğer", [["/duyurular", "◉", "Duyurular"], ["/bildirimler", "●", "Bildirimler"], ["/hesabim", "○", "Hesabım"]]],
 ] as const;
 
 export function AppShell() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const activeCariNo = useCompanyContext((state) => state.activeCariNo);
+  const setActiveCariNo = useCompanyContext((state) => state.setActiveCariNo);
+  const cartCount = useCompanyContext((state) =>
+    (state.cartByAccount[state.activeCariNo] ?? []).reduce((sum, line) => sum + line.quantity, 0));
+  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
 
   function handleLogout() {
     clearMockSession();
     navigate("/login", { replace: true });
   }
 
+  function handleAccountChange(cariNo: number) {
+    setActiveCariNo(cariNo);
+    void queryClient.invalidateQueries();
+    if (location.pathname === "/checkout") navigate("/sepet", { replace: true });
+  }
+
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">Netsim <span>B2B</span></div>
+      {mobileOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setMobileOpen(false)} />}
+      <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+        <div className="sidebar-head">
+          <Link className="brand" to="/dashboard">Netsim <span>B2B</span></Link>
+          <button className="sidebar-close" type="button" aria-label="Menüyü kapat" onClick={() => setMobileOpen(false)}>×</button>
+        </div>
         <nav aria-label="Ana menü">
-          {navigation.map(([to, label]) => (
-            <NavLink key={to} to={to}>{label}</NavLink>
+          {navigation.map(([group, links]) => (
+            <div className="nav-group" key={group}>
+              <span className="nav-group-label">{group}</span>
+              {links.map(([to, icon, label]) => (
+                <NavLink key={to} to={to} onClick={() => setMobileOpen(false)}>
+                  <span aria-hidden="true">{icon}</span>{label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
+        <div className="sidebar-support">
+          <span>Yardıma mı ihtiyacınız var?</span>
+          <Link to="/destek">Destek Merkezi</Link>
+        </div>
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <span>Aktif firma</span>
-          <button type="button">Örnek Bayi A.Ş. ▾</button>
-          <button className="logout-button" type="button" onClick={handleLogout}>
-            Çıkış Yap
-          </button>
+          <button className="menu-button" type="button" aria-label="Menüyü aç" onClick={() => setMobileOpen(true)}>☰</button>
+          <div className="topbar-spacer" />
+          <label className="account-select">
+            <span>Aktif firma</span>
+            <select value={activeCariNo} onChange={(event) => handleAccountChange(Number(event.target.value))}>
+              {accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}
+            </select>
+          </label>
+          <Link className="topbar-icon" to="/bildirimler" aria-label="Bildirimler">●</Link>
+          <Link className="topbar-cart" to="/sepet" aria-label={`Sepet, ${cartCount} ürün`}>Sepet <strong>{cartCount}</strong></Link>
+          <div className="profile-menu">
+            <Link className="profile-link" to="/hesabim">
+              <span className="avatar">BA</span>
+              <span className="profile-copy"><strong>Burak Admin</strong><small>Satın Alma</small></span>
+            </Link>
+            <button className="logout-button" type="button" onClick={handleLogout}>Çıkış</button>
+          </div>
         </header>
         <main><Outlet /></main>
       </div>
