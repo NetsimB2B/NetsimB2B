@@ -38,6 +38,12 @@ export type Order = {
   status: OrderStatus;
   lines: CartLine[];
   total: number;
+  customerOrderNo?: string;
+  expectedDeliveryDate?: string;
+  salesRepresentative?: string;
+  shippingMethod?: string;
+  shipmentId?: string;
+  invoiceId?: string;
   deliveryAddress: string;
   paymentMethod: string;
   note?: string;
@@ -47,9 +53,19 @@ export type Quote = {
   id: string;
   accountId: number;
   title: string;
+  reference: string;
+  createdAt: string;
   validUntil: string;
   status: "Geçerli" | "Kabul Edildi" | "Süresi Doldu";
-  lines: CartLine[];
+  salesRepresentative: string;
+  paymentTerm: string;
+  deliveryTerm: string;
+  note?: string;
+  lines: Array<CartLine & {
+    unitPrice: number;
+    listPrice: number;
+    deliveryTime: string;
+  }>;
   total: number;
 };
 
@@ -58,8 +74,23 @@ export type Shipment = {
   accountId: number;
   orderId: string;
   date: string;
-  status: string;
+  status: "Hazırlanıyor" | "Yolda" | "Teslim Edildi";
   carrier: string;
+  trackingNo: string;
+  estimatedDelivery: string;
+  deliveredAt?: string;
+  origin: string;
+  destination: string;
+  packageCount: number;
+  totalWeight: number;
+  vehiclePlate?: string;
+  driverName?: string;
+  events: Array<{
+    date: string;
+    title: string;
+    location: string;
+    completed: boolean;
+  }>;
 };
 
 export type Invoice = {
