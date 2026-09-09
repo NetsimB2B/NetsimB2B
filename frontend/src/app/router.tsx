@@ -2,12 +2,17 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "@/app/shell/AppShell";
 import { CartPage } from "@/features/cart";
 import { DashboardPage } from "@/features/dashboard";
+import { LoginPage } from "@/features/auth/LoginPage";
 import { OrdersPage } from "@/features/orders";
 import { ProductsPage } from "@/features/products";
 import { QuickOrderPage } from "@/features/quick-order";
 import { QuotesPage } from "@/features/quotes";
 
 export const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
   {
     element: <AppShell />,
     children: [
