@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { clearMockSession } from "@/features/auth/mockAuth";
 
 const navigation = [
   ["/dashboard", "Gösterge Paneli"],
@@ -10,6 +11,13 @@ const navigation = [
 ] as const;
 
 export function AppShell() {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    clearMockSession();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -24,6 +32,9 @@ export function AppShell() {
         <header className="topbar">
           <span>Aktif firma</span>
           <button type="button">Örnek Bayi A.Ş. ▾</button>
+          <button className="logout-button" type="button" onClick={handleLogout}>
+            Çıkış Yap
+          </button>
         </header>
         <main><Outlet /></main>
       </div>

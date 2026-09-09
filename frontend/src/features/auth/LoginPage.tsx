@@ -1,11 +1,28 @@
 import { useState, type FormEvent } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { authenticateMockUser, isMockAuthenticated, mockCredentials } from "./mockAuth";
 import "./login.css";
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!authenticateMockUser(email, password)) {
+      setError("E-posta adresi veya şifre hatalı.");
+      return;
+    }
+
+    navigate("/dashboard", { replace: true });
+  }
+
+  if (isMockAuthenticated()) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -48,6 +65,12 @@ export function LoginPage() {
             <p>Devam etmek için hesap bilgilerinizi girin.</p>
           </div>
 
+          <div className="login-demo-note" aria-label="Demo giriş bilgileri">
+            <strong>Demo hesabı</strong>
+            <span>{mockCredentials.email}</span>
+            <span>{mockCredentials.password}</span>
+          </div>
+
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-field">
               <label htmlFor="email">E-posta adresi</label>
@@ -57,6 +80,14 @@ export function LoginPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="ornek@firma.com"
+                value={email}
+                required
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "login-error" : undefined}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError("");
+                }}
               />
             </div>
 
@@ -74,6 +105,14 @@ export function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Şifrenizi girin"
+                  value={password}
+                  required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "login-error" : undefined}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setError("");
+                  }}
                 />
                 <button
                   type="button"
@@ -91,6 +130,12 @@ export function LoginPage() {
               <input type="checkbox" name="remember" />
               <span>Beni hatırla</span>
             </label>
+
+            {error && (
+              <p className="login-error" id="login-error" role="alert">
+                {error}
+              </p>
+            )}
 
             <button className="login-submit" type="submit">
               Giriş Yap

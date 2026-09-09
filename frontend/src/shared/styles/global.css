@@ -19,6 +19,7 @@ button { font: inherit; }
 .topbar { height: 64px; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 0 32px; background: #fff; border-bottom: 1px solid #e7e9ec; }
 .topbar span { color: #777d86; font-size: 13px; }
 .topbar button { border: 0; background: transparent; font-weight: 650; }
+.topbar .logout-button { margin-left: 8px; padding-left: 16px; border-left: 1px solid #e7e9ec; color: #a8440c; cursor: pointer; }
 main { padding: 32px; }
 .page { max-width: 1280px; margin: 0 auto; }
 .page-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px; }
