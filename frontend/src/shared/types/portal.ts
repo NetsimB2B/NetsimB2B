@@ -6,6 +6,8 @@ export type Account = {
   availableCredit: number;
   overdueAmount: number;
   currency: "TRY";
+  logoUrl?: string;
+  brandColor?: string;
 };
 
 export type Product = {

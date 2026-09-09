@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import netsimLogo from "@/assets/netsim-logo.png";
+import { useCompanyContext } from "@/features/company-context/store";
 import { authenticateMockUser, isMockAuthenticated, mockCredentials } from "./mockAuth";
 import "./login.css";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const setActiveCariNo = useCompanyContext((state) => state.setActiveCariNo);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +21,7 @@ export function LoginPage() {
       return;
     }
 
+    setActiveCariNo(mockCredentials.accountId);
     navigate("/dashboard", { replace: true });
   }
 
@@ -30,8 +34,7 @@ export function LoginPage() {
       <section className="login-intro" aria-labelledby="login-intro-title">
         <div className="login-intro-content">
           <a className="login-brand login-brand-light" href="/" aria-label="Netsim B2B ana sayfa">
-            <span className="login-brand-mark" aria-hidden="true">N</span>
-            <span>Netsim <strong>B2B</strong></span>
+            <img className="login-brand-logo" src={netsimLogo} alt="" />
           </a>
 
           <div className="login-intro-copy">
@@ -55,8 +58,7 @@ export function LoginPage() {
       <section className="login-form-panel" aria-labelledby="login-title">
         <div className="login-form-wrapper">
           <a className="login-brand login-brand-mobile" href="/" aria-label="Netsim B2B ana sayfa">
-            <span className="login-brand-mark" aria-hidden="true">N</span>
-            <span>Netsim <strong>B2B</strong></span>
+            <img className="login-brand-logo" src={netsimLogo} alt="" />
           </a>
 
           <div className="login-heading">

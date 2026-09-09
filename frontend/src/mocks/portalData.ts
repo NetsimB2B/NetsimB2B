@@ -1,8 +1,8 @@
 import type { Account, Invoice, Order, Product, Quote, Shipment } from "@/shared/types/portal";
 
 export const accounts: Account[] = [
-  { id: 1001, name: "Örnek Bayi A.Ş.", code: "CR-1001", balance: 184_250, availableCredit: 315_750, overdueAmount: 0, currency: "TRY" },
-  { id: 1002, name: "Marmara Endüstri Ltd.", code: "CR-1002", balance: 92_800, availableCredit: 107_200, overdueAmount: 14_350, currency: "TRY" },
+  { id: 1001, name: "Örnek Bayi A.Ş.", code: "CR-1001", balance: 184_250, availableCredit: 315_750, overdueAmount: 0, currency: "TRY", brandColor: "#315b8a" },
+  { id: 1002, name: "Marmara Endüstri Ltd.", code: "CR-1002", balance: 92_800, availableCredit: 107_200, overdueAmount: 14_350, currency: "TRY", brandColor: "#18785f" },
 ];
 
 export const products: Product[] = [

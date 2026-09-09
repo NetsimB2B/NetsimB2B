@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import netsimLogo from "@/assets/netsim-logo.png";
 import { clearMockSession } from "@/features/auth/mockAuth";
 import { useCompanyContext } from "@/features/company-context/store";
+import { CompanyLogo } from "@/shared/components/CompanyLogo";
 import { portalService } from "@/shared/services/portalService";
 
 const navigation = [
@@ -23,6 +25,7 @@ export function AppShell() {
   const cartCount = useCompanyContext((state) =>
     (state.cartByAccount[state.activeCariNo] ?? []).reduce((sum, line) => sum + line.quantity, 0));
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
+  const activeAccount = accounts.find((account) => account.id === activeCariNo);
 
   function handleLogout() {
     clearMockSession();
@@ -40,7 +43,9 @@ export function AppShell() {
       {mobileOpen && <button className="sidebar-backdrop" aria-label="Menüyü kapat" onClick={() => setMobileOpen(false)} />}
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-head">
-          <Link className="brand" to="/dashboard">Netsim <span>B2B</span></Link>
+          <Link className="brand sidebar-brand" to="/dashboard" aria-label="Netsim B2B gösterge paneli">
+            <img src={netsimLogo} alt="" />
+          </Link>
           <button className="sidebar-close" type="button" aria-label="Menüyü kapat" onClick={() => setMobileOpen(false)}>×</button>
         </div>
         <nav aria-label="Ana menü">
@@ -64,6 +69,14 @@ export function AppShell() {
         <header className="topbar">
           <button className="menu-button" type="button" aria-label="Menüyü aç" onClick={() => setMobileOpen(true)}>☰</button>
           <div className="topbar-spacer" />
+          {activeAccount && (
+            <CompanyLogo
+              className="topbar-company-logo"
+              name={activeAccount.name}
+              logoUrl={activeAccount.logoUrl}
+              color={activeAccount.brandColor}
+            />
+          )}
           <label className="account-select">
             <span>Aktif firma</span>
             <select value={activeCariNo} onChange={(event) => handleAccountChange(Number(event.target.value))}>

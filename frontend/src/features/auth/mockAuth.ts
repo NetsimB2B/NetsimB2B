@@ -3,6 +3,7 @@ const mockSessionKey = "netsim-b2b:mock-session";
 export const mockCredentials = {
   email: "demo@netsim.com",
   password: "Netsim123!",
+  accountId: 1001,
 } as const;
 
 export function authenticateMockUser(email: string, password: string) {
