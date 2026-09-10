@@ -11,6 +11,10 @@ public static class ProductEndpoints
 
         group.MapGet("/", async (
             string? search,
+            string? category,
+            string? brand,
+            bool? inStock,
+            string? sort,
             int? page,
             int? pageSize,
             ICurrentCompanyContext companyContext,
@@ -20,11 +24,25 @@ public static class ProductEndpoints
             var result = await products.SearchAsync(
                 companyContext.CariNo,
                 search,
+                category,
+                brand,
+                inStock ?? false,
+                sort,
                 Math.Max(page ?? 1, 1),
-                Math.Clamp(pageSize ?? 24, 1, 100),
+                Math.Clamp(pageSize ?? 24, 1, 500),
                 cancellationToken);
 
             return Results.Ok(result);
+        });
+
+        group.MapGet("/{id:long}", async (
+            long id,
+            ICurrentCompanyContext companyContext,
+            IProductReadService products,
+            CancellationToken cancellationToken) =>
+        {
+            var product = await products.GetAsync(companyContext.CariNo, id, cancellationToken);
+            return product is null ? Results.NotFound() : Results.Ok(product);
         });
 
         return endpoints;

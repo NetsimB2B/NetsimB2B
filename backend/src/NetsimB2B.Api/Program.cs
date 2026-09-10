@@ -55,6 +55,8 @@ app.UseAuthorization();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapAuthEndpoints();
 app.MapProductEndpoints();
+app.MapCartEndpoints();
+app.MapFavoriteEndpoints();
 
 app.Run();
 

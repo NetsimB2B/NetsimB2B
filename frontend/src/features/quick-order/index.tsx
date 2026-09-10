@@ -19,6 +19,7 @@ export function QuickOrderPage() {
   const accountId = useCompanyContext((state) => state.activeCariNo);
   const addToCart = useCompanyContext((state) => state.addToCart);
   const storedCart = useCompanyContext((state) => state.cartByAccount[state.activeCariNo]);
+  const favorites = useCompanyContext((state) => state.favorites);
   const [rows, setRows] = useState<QuickRow[]>(() => Array.from({ length: 5 }, () => createRow()));
   const [pasteData, setPasteData] = useState("");
   const [mode, setMode] = useState<"manual" | "bulk">("manual");
@@ -26,6 +27,7 @@ export function QuickOrderPage() {
   const [added, setAdded] = useState(false);
   const { data: products = [], isLoading } = useQuery({ queryKey: ["products", accountId, "quick"], queryFn: () => portalService.getProducts(accountId) });
   const cartCount = (storedCart ?? []).reduce((sum, line) => sum + line.quantity, 0);
+  const favoriteProducts = useMemo(() => products.filter((product) => favorites.includes(product.id)), [products, favorites]);
 
   const resolved = useMemo(() => rows.map((row) => {
     const normalizedCode = row.code.trim().toLocaleUpperCase("tr-TR");
@@ -218,14 +220,16 @@ export function QuickOrderPage() {
             )}
           </Card>
 
-          <Card className="quick-suggestions">
-            <div><span aria-hidden="true">↻</span><p><strong>Sık sipariş verilen ürünler</strong><small>Tek tıkla giriş tablosuna ekleyin</small></p></div>
-            <nav aria-label="Sık sipariş edilen ürünler">
-              {products.filter((product) => product.featured).slice(0, 3).map((product) => (
-                <button type="button" key={product.id} onClick={() => addSuggestedProduct(product.code)}><span>{product.image}</span><p><strong>{product.code}</strong><small>{product.name}</small></p><b>＋</b></button>
-              ))}
-            </nav>
-          </Card>
+          {favoriteProducts.length > 0 && (
+            <Card className="quick-suggestions">
+              <div><span aria-hidden="true">↻</span><p><strong>Favori ürünleriniz</strong><small>Tek tıkla giriş tablosuna ekleyin</small></p></div>
+              <nav aria-label="Favori ürünler">
+                {favoriteProducts.slice(0, 3).map((product) => (
+                  <button type="button" key={product.id} onClick={() => addSuggestedProduct(product.code)}><span>{product.image}</span><p><strong>{product.code}</strong><small>{product.name}</small></p><b>＋</b></button>
+                ))}
+              </nav>
+            </Card>
+          )}
         </div>
 
         <aside className="quick-order-sidebar">

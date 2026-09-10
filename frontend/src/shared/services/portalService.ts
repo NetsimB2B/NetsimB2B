@@ -1,6 +1,48 @@
-import { accountTransactions, accounts, invoices, products, quotes, seedOrders, shipments } from "@/mocks/portalData";
+import { accountTransactions, accounts, invoices, quotes, seedOrders, shipments } from "@/mocks/portalData";
 import { useCompanyContext } from "@/features/company-context/store";
+import { fetchProduct, fetchProducts, type ApiProduct } from "@/shared/api/productsApi";
+import { ApiError } from "@/shared/api/httpClient";
 import type { Account, AccountTransaction, Invoice, Order, Product, Quote, Shipment } from "@/shared/types/portal";
+
+// Netsim'de ürün görseli için güvenilir bir kaynak yok (bkz. docs/03-modules/ürünler.md
+// madde 85); ürün hattına (kategoriye) göre sade bir yer tutucu simge gösterilir.
+const categoryIcons: Record<string, string> = {
+  Motorlar: "⚙️",
+  Pompalar: "💧",
+  Redüktörler: "🔩",
+  Otomasyon: "📡",
+  Rulmanlar: "⭕",
+  Vanalar: "🔧",
+  Elektrik: "🔌",
+  Hidrolik: "🧰",
+};
+
+// Netsim satış birimi kodları (STOKBIRI.BIRIM) kullanıcıya kısaltma yerine tam adla
+// gösterilir; listede olmayan kodlar olduğu gibi gösterilir.
+const unitLabels: Record<string, string> = {
+  AD: "Adet",
+  MT: "Metre",
+  KG: "Kilogram",
+  LT: "Litre",
+  PK: "Paket",
+  KUTU: "Kutu",
+};
+
+function toProduct(item: ApiProduct): Product {
+  const category = item.category ?? "Diğer";
+  return {
+    id: item.id,
+    code: item.code,
+    name: item.name,
+    category,
+    brand: item.brand ?? "Diğer",
+    unit: unitLabels[item.unit] ?? item.unit,
+    description: item.description ?? "",
+    price: item.price ?? 0,
+    stock: item.stock,
+    image: categoryIcons[category] ?? "📦",
+  };
+}
 
 export type ProductQuery = {
   search?: string;
@@ -17,7 +59,6 @@ export type CheckoutInput = {
 };
 
 const delay = (ms = 260) => new Promise((resolve) => setTimeout(resolve, ms));
-const accountPriceMultiplier = (accountId: number) => accountId === 1002 ? 1.06 : 1;
 
 export const portalService = {
   async getAccounts(): Promise<Account[]> {
@@ -33,29 +74,18 @@ export const portalService = {
   },
 
   async getProducts(accountId: number, query: ProductQuery = {}): Promise<Product[]> {
-    await delay();
-    const search = query.search?.trim().toLocaleLowerCase("tr-TR") ?? "";
-    const result = products
-      .filter((product) => !search
-        || `${product.name} ${product.code} ${product.brand}`.toLocaleLowerCase("tr-TR").includes(search))
-      .filter((product) => !query.category || product.category === query.category)
-      .filter((product) => !query.brand || product.brand === query.brand)
-      .filter((product) => !query.inStock || product.stock > 0)
-      .map((product) => ({
-        ...product,
-        price: Math.round(product.price * accountPriceMultiplier(accountId) * 100) / 100,
-      }));
-
-    return result.sort((a, b) => {
-      if (query.sort === "price-asc") return a.price - b.price;
-      if (query.sort === "price-desc") return b.price - a.price;
-      return a.name.localeCompare(b.name, "tr");
-    });
+    const items = await fetchProducts(accountId, query);
+    return items.map(toProduct);
   },
 
   async getProduct(accountId: number, productId: number): Promise<Product | undefined> {
-    const list = await this.getProducts(accountId);
-    return list.find((product) => product.id === productId);
+    try {
+      const item = await fetchProduct(accountId, productId);
+      return toProduct(item);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return undefined;
+      throw error;
+    }
   },
 
   async getOrders(accountId: number): Promise<Order[]> {

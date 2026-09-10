@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import netsimLogo from "@/assets/netsim-logo.png";
@@ -30,11 +30,25 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const activeCariNo = useCompanyContext((state) => state.activeCariNo);
   const setActiveCariNo = useCompanyContext((state) => state.setActiveCariNo);
+  const loadCart = useCompanyContext((state) => state.loadCart);
+  const loadFavorites = useCompanyContext((state) => state.loadFavorites);
   const notificationsRead = useCompanyContext((state) => state.notificationsRead);
   const cartCount = useCompanyContext((state) =>
     (state.cartByAccount[state.activeCariNo] ?? []).reduce((sum, line) => sum + line.quantity, 0));
   const { data: allAccounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
   const { data: session } = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
+
+  // Sepet artık veritabanında tutuluyor: oturum doğrulandığında ve aktif firma
+  // değiştiğinde sunucudaki güncel sepeti yükler (bkz. company-context/store.ts).
+  useEffect(() => {
+    if (session) void loadCart(activeCariNo);
+  }, [session, activeCariNo, loadCart]);
+
+  // Favoriler kullanıcı bazlıdır (cari/firmadan bağımsız) — yalnızca oturum doğrulandığında
+  // bir kez yüklenir, firma değişiminde tekrar çekilmesine gerek yoktur.
+  useEffect(() => {
+    if (session) void loadFavorites();
+  }, [session, loadFavorites]);
   const allowedCariNos = new Set(session?.accounts.map((account) => account.cariNo) ?? []);
   const accounts = allAccounts.filter((account) => allowedCariNos.has(account.id));
   const activeAccount = accounts.find((account) => account.id === activeCariNo);

@@ -7,8 +7,6 @@ import { Badge, Card, EmptyState, ErrorState, LoadingState } from "@/shared/comp
 import { formatMoney } from "@/shared/lib/format";
 import "./products.css";
 
-const categories = ["Motorlar", "Pompalar", "Redüktörler", "Otomasyon", "Rulmanlar", "Vanalar", "Elektrik", "Hidrolik"];
-
 function stockTone(stock: number) {
   return stock > 10 ? "success" : stock > 0 ? "warning" : "danger";
 }
@@ -40,6 +38,7 @@ export function ProductsPage() {
     queryFn: () => portalService.getProducts(accountId),
   });
   const brands = useMemo(() => [...new Set(allProducts.map((product) => product.brand))].sort((a, b) => a.localeCompare(b, "tr")), [allProducts]);
+  const categories = useMemo(() => [...new Set(allProducts.map((product) => product.category))].sort((a, b) => a.localeCompare(b, "tr")), [allProducts]);
   const pageSize = 8;
   const visibleProducts = data.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
@@ -128,7 +127,6 @@ export function ProductsPage() {
                   <Card className="product-card" key={product.id}>
                     <button className={`favorite-button ${favorites.includes(product.id) ? "is-favorite" : ""}`} type="button" aria-label={favorites.includes(product.id) ? "Favorilerden çıkar" : "Favoriye ekle"} onClick={() => toggleFavorite(product.id)}>♥</button>
                     <Link className="product-visual" to={`/urunler/${product.id}`} aria-label={`${product.name} detayını aç`}>
-                      {product.featured && <span className="featured-label">Öne Çıkan</span>}
                       <ProductArtwork image={product.image} category={product.category} />
                     </Link>
                     <div className="product-card-body">
@@ -219,7 +217,6 @@ export function ProductDetailPage() {
       <section className="product-detail">
         <div className="product-gallery">
           <Card className="product-detail-visual">
-            {product.featured && <span className="featured-label">Öne Çıkan Ürün</span>}
             <ProductArtwork image={product.image} category={product.category} />
             <button className={`detail-favorite ${favorites.includes(product.id) ? "is-favorite" : ""}`} type="button" onClick={() => toggleFavorite(product.id)} aria-label={favorites.includes(product.id) ? "Favorilerden çıkar" : "Favoriye ekle"}>♥</button>
           </Card>

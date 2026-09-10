@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NetsimB2B.Application.Abstractions.Data;
 using NetsimB2B.Application.Auth;
+using NetsimB2B.Application.Cart;
+using NetsimB2B.Application.Favorites;
 using NetsimB2B.Application.Products;
 using NetsimB2B.Infrastructure.B2B;
 using NetsimB2B.Infrastructure.Netsim;
@@ -30,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<ICariAccessStore, CariAccessStore>();
         services.AddScoped<IAccountReadService, NetsimAccountReadService>();
         services.AddScoped<AuthenticationService>();
+        services.AddScoped<ICartStore, CartStore>();
+        services.AddScoped<IFavoriteStore, FavoriteStore>();
 
         return services;
     }

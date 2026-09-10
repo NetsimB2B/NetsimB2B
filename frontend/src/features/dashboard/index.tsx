@@ -11,9 +11,10 @@ export function DashboardPage() {
   const accountId = useCompanyContext((state) => state.activeCariNo);
   const storedCart = useCompanyContext((state) => state.cartByAccount[state.activeCariNo]);
   const cart = storedCart ?? [];
+  const favorites = useCompanyContext((state) => state.favorites);
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders", accountId], queryFn: () => portalService.getOrders(accountId) });
-  const { data: products = [] } = useQuery({ queryKey: ["products", accountId, "featured"], queryFn: () => portalService.getProducts(accountId) });
+  const { data: products = [] } = useQuery({ queryKey: ["products", accountId, "favorites"], queryFn: () => portalService.getProducts(accountId) });
   const { data: invoices = [] } = useQuery({ queryKey: ["invoices", accountId], queryFn: () => portalService.getInvoices(accountId) });
   const { data: shipments = [] } = useQuery({ queryKey: ["shipments", accountId], queryFn: () => portalService.getShipments(accountId) });
   const { data: quotes = [] } = useQuery({ queryKey: ["quotes", accountId], queryFn: () => portalService.getQuotes(accountId) });
@@ -209,16 +210,20 @@ export function DashboardPage() {
         </Card>
 
         <Card className="dashboard-panel">
-          <div className="section-heading"><div><h2>Sık Alınanlar</h2><p>Firmanız için öne çıkanlar</p></div><Link to="/urunler">Katalog <span aria-hidden="true">→</span></Link></div>
-          <div className="frequent-products">
-            {products.filter((product) => product.featured).slice(0, 3).map((product) => (
-              <Link to={`/urunler/${product.id}`} key={product.id}>
-                <span className="frequent-product-image">{product.image}</span>
-                <div><strong>{product.name}</strong><small>{product.code} · Stokta {product.stock}</small><b>{formatMoney(product.price)}</b></div>
-                <span className="dashboard-row-arrow" aria-hidden="true">›</span>
-              </Link>
-            ))}
-          </div>
+          <div className="section-heading"><div><h2>Favorileriniz</h2><p>Hızlıca yeniden sipariş verin</p></div><Link to="/favoriler">Tümünü Gör <span aria-hidden="true">→</span></Link></div>
+          {products.filter((product) => favorites.includes(product.id)).length === 0 ? (
+            <EmptyState title="Henüz favori ürününüz yok" description="Katalogdan ürünleri favorilerinize ekleyerek buradan hızlıca ulaşabilirsiniz." />
+          ) : (
+            <div className="frequent-products">
+              {products.filter((product) => favorites.includes(product.id)).slice(0, 3).map((product) => (
+                <Link to={`/urunler/${product.id}`} key={product.id}>
+                  <span className="frequent-product-image">{product.image}</span>
+                  <div><strong>{product.name}</strong><small>{product.code} · Stokta {product.stock}</small><b>{formatMoney(product.price)}</b></div>
+                  <span className="dashboard-row-arrow" aria-hidden="true">›</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>
