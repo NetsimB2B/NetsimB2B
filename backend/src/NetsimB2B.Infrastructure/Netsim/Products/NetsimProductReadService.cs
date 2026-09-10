@@ -15,12 +15,15 @@ internal sealed class NetsimProductReadService(INetsimConnectionFactory connecti
     {
         const string sql = """
             /* STOKKART alanları müşteri Netsim kurulumu üzerinde doğrulanmalıdır. */
+            /* STOKKART'ta BIRIM kolonu yok; birim STOKBIRI'den STOK_NO + SIRA_NO=1 (ana birim) ile okunur.
+               ⚠️ VARSAYIM: SIRA_NO=1 ana birimi temsil ediyor — müşteri Netsim kurulumunda doğrulanmalıdır. */
             SELECT FIRST @PageSize SKIP @Offset
                 S.STOK_NO AS Id,
                 S.STOK_KODU AS Code,
                 S.STOK_ADI AS Name,
-                S.BIRIM AS Unit
+                SB.BIRIM AS Unit
             FROM STOKKART S
+            LEFT JOIN STOKBIRI SB ON SB.STOK_NO = S.STOK_NO AND SB.SIRA_NO = 1
             WHERE (@Search IS NULL
                 OR S.STOK_KODU CONTAINING @Search
                 OR S.STOK_ADI CONTAINING @Search)

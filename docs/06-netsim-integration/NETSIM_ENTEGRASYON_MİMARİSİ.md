@@ -218,6 +218,11 @@ Bu bölüm sürekli güncel tutulmalıdır.
 - Sipariş oluşturmak için hangi procedure kullanılmalı?
 - Cari fiyat motoru nasıl çağrılıyor?
 - Güncel stok bakiye tablosu hangisi?
+  - Aday: `NS_STOKKADE.MIKTAR` (depo/`STOK_YERI_NO` bazlı satır). Kaynak: fiziksel tablo/PK/alan
+    listesi `docs/04-data/Netsim-Veritabani-Semasi.md`'den doğrulandı (bkz.
+    `docs/04-data/NETSIM_TABLO_HARİTASI.md` → STOKKADE), ancak bu tablonun canlı Netsim'de
+    gerçekten "güncel bakiye" mi yoksa hareket geçmişinin bir parçası mı olduğu, MIKTAR
+    alanının NULL/negatif anlamı ve STOKISLM ile ilişkisi **doğrulanmadı**.
 - Transactional write sırasında hangi triggerlar çalışıyor?
 - Nuke ile authentication entegrasyonu gerekli mi?
 
