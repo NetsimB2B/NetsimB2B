@@ -8,6 +8,28 @@ export type Account = {
   currency: "TRY";
   logoUrl?: string;
   brandColor?: string;
+  paymentTerm?: string;
+  riskGroup?: string;
+  accountManager?: string;
+  taxNumber?: string;
+  address?: string;
+  lastPaymentDate?: string;
+  lastPaymentAmount?: number;
+};
+
+export type AccountTransaction = {
+  id: string;
+  accountId: number;
+  date: string;
+  dueDate?: string;
+  document: string;
+  documentType: "Fatura" | "Tahsilat" | "İade" | "Dekont" | "Çek";
+  description: string;
+  debit: number;
+  credit: number;
+  balanceAfter: number;
+  status: "Açık" | "Kapalı" | "Vadesi Geçti" | "Kısmi";
+  relatedInvoiceId?: string;
 };
 
 export type Product = {
@@ -27,6 +49,9 @@ export type Product = {
 export type CartLine = {
   productId: number;
   quantity: number;
+  /** Teklif kabulünde aktarılan anlaşmalı birim fiyat (KDV hariç) */
+  unitPrice?: number;
+  quoteId?: string;
 };
 
 export type OrderStatus = "Alındı" | "Onaylandı" | "Hazırlanıyor" | "Sevk Edildi";
@@ -44,6 +69,7 @@ export type Order = {
   shippingMethod?: string;
   shipmentId?: string;
   invoiceId?: string;
+  quoteId?: string;
   deliveryAddress: string;
   paymentMethod: string;
   note?: string;
@@ -100,4 +126,19 @@ export type Invoice = {
   dueDate: string;
   total: number;
   status: "Ödendi" | "Açık" | "Vadesi Geçti";
+  orderId?: string;
+  eInvoiceUuid?: string;
+  paymentTerm: string;
+  paidAmount: number;
+  remainingAmount: number;
+  taxExcluded: number;
+  taxAmount: number;
+  currency: "TRY";
+  description: string;
+  lines: Array<{
+    productId: number;
+    quantity: number;
+    unitPrice: number;
+    taxRate: number;
+  }>;
 };

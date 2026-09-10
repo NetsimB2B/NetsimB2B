@@ -9,7 +9,7 @@ type CompanyContextState = {
   favorites: number[];
   notificationsRead: boolean;
   setActiveCariNo: (cariNo: number) => void;
-  addToCart: (productId: number, quantity?: number) => void;
+  addToCart: (productId: number, quantity?: number, options?: { unitPrice?: number; quoteId?: string }) => void;
   updateCartLine: (productId: number, quantity: number) => void;
   removeCartLine: (productId: number) => void;
   clearCart: (accountId?: number) => void;
@@ -27,16 +27,26 @@ export const useCompanyContext = create<CompanyContextState>()(
       favorites: [],
       notificationsRead: false,
       setActiveCariNo: (activeCariNo) => set({ activeCariNo }),
-      addToCart: (productId, quantity = 1) =>
+      addToCart: (productId, quantity = 1, options) =>
         set((state) => {
           const safeQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
           const cart = state.cartByAccount[state.activeCariNo] ?? [];
           const existing = cart.find((line) => line.productId === productId);
           const nextCart = existing
             ? cart.map((line) => line.productId === productId
-              ? { ...line, quantity: line.quantity + safeQuantity }
+              ? {
+                  ...line,
+                  quantity: line.quantity + safeQuantity,
+                  unitPrice: options?.unitPrice ?? line.unitPrice,
+                  quoteId: options?.quoteId ?? line.quoteId,
+                }
               : line)
-            : [...cart, { productId, quantity: safeQuantity }];
+            : [...cart, {
+                productId,
+                quantity: safeQuantity,
+                ...(options?.unitPrice != null ? { unitPrice: options.unitPrice } : {}),
+                ...(options?.quoteId ? { quoteId: options.quoteId } : {}),
+              }];
           return { cartByAccount: { ...state.cartByAccount, [state.activeCariNo]: nextCart } };
         }),
       updateCartLine: (productId, quantity) =>

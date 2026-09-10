@@ -81,6 +81,30 @@
   font-weight: 700;
 }
 
+.cart-quote-banner {
+  margin: -7px 0 15px;
+  padding: 12px 14px;
+  border: 1px solid #f0c4b0;
+  border-radius: 10px;
+  color: #9a3412;
+  background: #fff7f3;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cart-quote-banner a {
+  color: var(--primary-hover);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cart-list-strike {
+  display: block;
+  color: var(--muted);
+  text-decoration: line-through;
+  font-weight: 600;
+}
+
 .cart-checkout-steps {
   display: flex;
   align-items: center;

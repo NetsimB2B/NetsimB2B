@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import netsimLogo from "@/assets/netsim-logo.png";
 import { useCompanyContext } from "@/features/company-context/store";
 import { portalService } from "@/shared/services/portalService";
@@ -26,6 +26,8 @@ export function CartPage() {
   const updateCartLine = useCompanyContext((state) => state.updateCartLine);
   const removeCartLine = useCompanyContext((state) => state.removeCartLine);
   const clearCart = useCompanyContext((state) => state.clearCart);
+  const [searchParams] = useSearchParams();
+  const quoteId = searchParams.get("quote");
   const [confirmClear, setConfirmClear] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -40,10 +42,12 @@ export function CartPage() {
 
   const cartLines = lines.flatMap((line) => {
     const product = products.find((item) => item.id === line.productId);
-    return product ? [{ ...line, product }] : [];
+    if (!product) return [];
+    const unitPrice = line.unitPrice ?? product.price;
+    return [{ ...line, product, unitPrice, fromQuote: Boolean(line.quoteId || quoteId) }];
   });
   const account = accounts.find((item) => item.id === accountId);
-  const subtotal = cartLines.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
+  const subtotal = cartLines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const vat = subtotal * .2;
   const grandTotal = subtotal + vat;
   const totalQuantity = cartLines.reduce((sum, line) => sum + line.quantity, 0);
@@ -155,7 +159,7 @@ export function CartPage() {
       });
       worksheet.autoFilter = { from: "A9", to: "H9" };
 
-      cartLines.forEach(({ product, quantity }, index) => {
+      cartLines.forEach(({ product, quantity, unitPrice }, index) => {
         const row = worksheet.addRow([
           index + 1,
           product.code,
@@ -163,8 +167,8 @@ export function CartPage() {
           product.brand,
           quantity,
           product.unit,
-          product.price,
-          product.price * quantity,
+          unitPrice,
+          unitPrice * quantity,
         ]);
         row.height = 24;
         row.eachCell((cell, column) => {
@@ -250,6 +254,12 @@ export function CartPage() {
         )}
       </header>
       {exportError && <div className="cart-export-error" role="alert">{exportError}</div>}
+      {quoteId && lines.length > 0 && (
+        <div className="cart-quote-banner" role="status">
+          <strong>{quoteId}</strong> teklifi sepete aktarıldı — kalemler teklif birim fiyatıyla hesaplanır. Siparişi tamamlamadan önce miktar ve stokları kontrol edin.{" "}
+          <Link to={`/teklifler/${quoteId}`}>Teklife dön →</Link>
+        </div>
+      )}
 
       {lines.length > 0 && (
         <div className="cart-checkout-steps" aria-label="Sipariş adımları">
@@ -287,7 +297,7 @@ export function CartPage() {
               </div>
               <div className="cart-column-headings"><span>Ürün</span><span>Birim Fiyat</span><span>Miktar</span><span>Satır Toplamı</span><span /></div>
               <div className="cart-lines">
-            {cartLines.map(({ product, quantity }) => (
+            {cartLines.map(({ product, quantity, unitPrice, fromQuote }) => (
                   <article className={`cart-line ${quantity > product.stock ? "has-stock-error" : ""}`} key={product.id}>
                 <Link className="cart-product-icon" to={`/urunler/${product.id}`} aria-label={`${product.name} detayını görüntüle`}><span>{product.image}</span><small>{product.category}</small></Link>
                 <div className="cart-product-copy">
@@ -296,15 +306,20 @@ export function CartPage() {
                       <div className="cart-stock-row">
                         <Badge tone={product.stock > 10 ? "success" : product.stock > 0 ? "warning" : "danger"}>{product.stock > 0 ? "● Stokta" : "Stokta Yok"}</Badge>
                         <span>{product.stock} {product.unit} satılabilir</span>
+                        {fromQuote && <Badge tone="warning">Teklif fiyatı</Badge>}
                       </div>
                 </div>
-                    <div className="cart-unit-price"><strong>{formatMoney(product.price)}</strong><small>+ KDV / {product.unit}</small></div>
+                    <div className="cart-unit-price">
+                      <strong>{formatMoney(unitPrice)}</strong>
+                      {fromQuote && unitPrice !== product.price && <small className="cart-list-strike">{formatMoney(product.price)}</small>}
+                      <small>+ KDV / {product.unit}</small>
+                    </div>
                 <div className="cart-quantity-control">
                   <button type="button" aria-label="Miktarı azalt" disabled={quantity <= 1} onClick={() => updateCartLine(product.id, Math.max(1, quantity - 1))}>−</button>
                   <input type="number" min="1" max={product.stock} value={quantity} aria-label={`${product.name} miktarı`} onChange={(event) => updateCartLine(product.id, Math.min(product.stock, Math.max(1, Number(event.target.value) || 1)))} />
                   <button type="button" aria-label="Miktarı artır" disabled={quantity >= product.stock} onClick={() => updateCartLine(product.id, quantity + 1)}>＋</button>
                 </div>
-                <strong className="cart-line-total">{formatMoney(product.price * quantity)}</strong>
+                <strong className="cart-line-total">{formatMoney(unitPrice * quantity)}</strong>
                     <button className="remove-line" type="button" aria-label={`${product.name} ürününü kaldır`} onClick={() => removeCartLine(product.id)}>×</button>
                     {quantity > product.stock && <p className="cart-line-warning">Talep edilen miktar mevcut stoktan fazla. Miktarı güncelleyin.</p>}
                   </article>
@@ -340,7 +355,7 @@ export function CartPage() {
               {hasStockIssue && <div className="cart-summary-warning">Stok problemi olan ürünleri kontrol edin.</div>}
               {exceedsCredit && <div className="cart-summary-warning">Sipariş tutarı kullanılabilir cari limitinizi aşıyor.</div>}
 
-              <Link className={`button button-primary cart-checkout-button ${(hasStockIssue || exceedsCredit) ? "is-disabled" : ""}`} aria-disabled={hasStockIssue || exceedsCredit} onClick={(event) => { if (hasStockIssue || exceedsCredit) event.preventDefault(); }} to="/checkout">Teslimat ve Ödemeye Geç →</Link>
+              <Link className={`button button-primary cart-checkout-button ${(hasStockIssue || exceedsCredit) ? "is-disabled" : ""}`} aria-disabled={hasStockIssue || exceedsCredit} onClick={(event) => { if (hasStockIssue || exceedsCredit) event.preventDefault(); }} to={quoteId ? `/checkout?quote=${quoteId}` : "/checkout"}>Teslimat ve Ödemeye Geç →</Link>
               <Link className="cart-quote-link" to="/destek">Bu sepet için teklif isteyin</Link>
               <p className="cart-summary-note">Sipariş vermekle henüz ödeme yapmış olmazsınız.</p>
             </Card>

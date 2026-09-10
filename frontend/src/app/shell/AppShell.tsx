@@ -15,6 +15,8 @@ const navigation = [
   ["Diğer", [["/duyurular", "Duyurular"], ["/bildirimler", "Bildirimler"], ["/hesabim", "Hesabım"]]],
 ] as const;
 
+const UNREAD_NOTIFICATION_COUNT = 2;
+
 export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,10 +24,12 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const activeCariNo = useCompanyContext((state) => state.activeCariNo);
   const setActiveCariNo = useCompanyContext((state) => state.setActiveCariNo);
+  const notificationsRead = useCompanyContext((state) => state.notificationsRead);
   const cartCount = useCompanyContext((state) =>
     (state.cartByAccount[state.activeCariNo] ?? []).reduce((sum, line) => sum + line.quantity, 0));
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
   const activeAccount = accounts.find((account) => account.id === activeCariNo);
+  const unreadCount = notificationsRead ? 0 : UNREAD_NOTIFICATION_COUNT;
 
   function handleLogout() {
     clearMockSession();
@@ -83,7 +87,10 @@ export function AppShell() {
               {accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}
             </select>
           </label>
-          <Link className="topbar-icon" to="/bildirimler" aria-label="Bildirimler">●</Link>
+          <Link className={`topbar-icon${unreadCount ? " has-badge" : ""}`} to="/bildirimler" aria-label={unreadCount ? `Bildirimler, ${unreadCount} okunmamış` : "Bildirimler"}>
+            <span aria-hidden="true">●</span>
+            {unreadCount > 0 && <strong className="topbar-badge">{unreadCount}</strong>}
+          </Link>
           <Link className="topbar-cart" to="/sepet" aria-label={`Sepet, ${cartCount} ürün`}>Sepet <strong>{cartCount}</strong></Link>
           <div className="profile-menu">
             <Link className="profile-link" to="/hesabim">
@@ -98,4 +105,3 @@ export function AppShell() {
     </div>
   );
 }
-

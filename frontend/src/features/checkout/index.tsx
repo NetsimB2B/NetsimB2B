@@ -17,7 +17,11 @@ export function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState("Hazır olanı gönder");
   const [note, setNote] = useState("");
   const { data: products = [], isLoading: isPricing } = useQuery({ queryKey: ["products", accountId, "checkout"], queryFn: () => portalService.getProducts(accountId) });
-  const total = lines.reduce((sum, line) => sum + (products.find((product) => product.id === line.productId)?.price ?? 0) * line.quantity, 0);
+  const total = lines.reduce((sum, line) => {
+    const product = products.find((item) => item.id === line.productId);
+    const unitPrice = line.unitPrice ?? product?.price ?? 0;
+    return sum + unitPrice * line.quantity;
+  }, 0);
   const mutation = useMutation({
     mutationFn: () => portalService.createOrder(accountId, { deliveryAddress, paymentMethod, note: `${shippingMethod} — ${note}` }),
     onSuccess: async (order) => {

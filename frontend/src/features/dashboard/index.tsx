@@ -14,11 +14,18 @@ export function DashboardPage() {
   const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders", accountId], queryFn: () => portalService.getOrders(accountId) });
   const { data: products = [] } = useQuery({ queryKey: ["products", accountId, "featured"], queryFn: () => portalService.getProducts(accountId) });
+  const { data: invoices = [] } = useQuery({ queryKey: ["invoices", accountId], queryFn: () => portalService.getInvoices(accountId) });
+  const { data: shipments = [] } = useQuery({ queryKey: ["shipments", accountId], queryFn: () => portalService.getShipments(accountId) });
+  const { data: quotes = [] } = useQuery({ queryKey: ["quotes", accountId], queryFn: () => portalService.getQuotes(accountId) });
   const account = accounts.find((item) => item.id === accountId);
   const openOrders = orders.filter((order) => order.status !== "Sevk Edildi").length;
   const cartCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const totalCredit = (account?.balance ?? 0) + (account?.availableCredit ?? 0);
   const creditUsage = totalCredit > 0 ? Math.min(100, ((account?.balance ?? 0) / totalCredit) * 100) : 0;
+  const openInvoices = invoices.filter((invoice) => invoice.status !== "Ödendi");
+  const openInvoiceTotal = openInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const activeShipments = shipments.filter((shipment) => shipment.status === "Yolda" || shipment.status === "Hazırlanıyor");
+  const validQuotes = quotes.filter((quote) => quote.status === "Geçerli");
   const today = new Intl.DateTimeFormat("tr-TR", {
     weekday: "long",
     day: "numeric",
@@ -87,6 +94,86 @@ export function DashboardPage() {
         </Card>
       </div>
 
+      <div className="dashboard-ops">
+        <Card className="dashboard-ops-card">
+          <div className="dashboard-ops-head">
+            <span aria-hidden="true">▤</span>
+            <div>
+              <strong>Açık Faturalar</strong>
+              <small>{openInvoices.length} belge · {formatMoney(openInvoiceTotal)}</small>
+            </div>
+            <Link to="/faturalar">Tümü ›</Link>
+          </div>
+          {openInvoices.length === 0 ? (
+            <p className="dashboard-ops-empty">Ödenmemiş fatura yok.</p>
+          ) : (
+            <ul>
+              {openInvoices.slice(0, 3).map((invoice) => (
+                <li key={invoice.id}>
+                  <Link to={`/faturalar/${invoice.id}`}>
+                    <strong>{invoice.id}</strong>
+                    <small>{formatDate(invoice.dueDate)} · {invoice.status}</small>
+                    <span>{formatMoney(invoice.total)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="dashboard-ops-card">
+          <div className="dashboard-ops-head">
+            <span aria-hidden="true">▣</span>
+            <div>
+              <strong>Aktif Sevkiyat</strong>
+              <small>{activeShipments.length} kayıt yolda / hazırlanıyor</small>
+            </div>
+            <Link to="/sevkiyatlar">Tümü ›</Link>
+          </div>
+          {activeShipments.length === 0 ? (
+            <p className="dashboard-ops-empty">Aktif sevkiyat bulunmuyor.</p>
+          ) : (
+            <ul>
+              {activeShipments.slice(0, 3).map((shipment) => (
+                <li key={shipment.id}>
+                  <Link to={`/sevkiyatlar/${shipment.id}`}>
+                    <strong>{shipment.id}</strong>
+                    <small>{shipment.status} · {shipment.carrier}</small>
+                    <Badge tone={shipment.status === "Yolda" ? "warning" : "neutral"}>{shipment.status}</Badge>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="dashboard-ops-card">
+          <div className="dashboard-ops-head">
+            <span aria-hidden="true">◇</span>
+            <div>
+              <strong>Geçerli Teklifler</strong>
+              <small>{validQuotes.length} teklif siparişe dönüşebilir</small>
+            </div>
+            <Link to="/teklifler">Tümü ›</Link>
+          </div>
+          {validQuotes.length === 0 ? (
+            <p className="dashboard-ops-empty">Aktif teklif yok.</p>
+          ) : (
+            <ul>
+              {validQuotes.slice(0, 3).map((quote) => (
+                <li key={quote.id}>
+                  <Link to={`/teklifler/${quote.id}`}>
+                    <strong>{quote.id}</strong>
+                    <small>{quote.title}</small>
+                    <span>{formatMoney(quote.total)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
       <Card className="dashboard-banner">
         <div className="dashboard-banner-copy">
           <Badge tone="warning">Eylül fırsatı</Badge>
@@ -137,4 +224,3 @@ export function DashboardPage() {
     </div>
   );
 }
-

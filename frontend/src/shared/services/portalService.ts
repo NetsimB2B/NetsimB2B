@@ -1,6 +1,6 @@
-import { accounts, invoices, products, quotes, seedOrders, shipments } from "@/mocks/portalData";
+import { accountTransactions, accounts, invoices, products, quotes, seedOrders, shipments } from "@/mocks/portalData";
 import { useCompanyContext } from "@/features/company-context/store";
-import type { Account, Invoice, Order, Product, Quote, Shipment } from "@/shared/types/portal";
+import type { Account, AccountTransaction, Invoice, Order, Product, Quote, Shipment } from "@/shared/types/portal";
 
 export type ProductQuery = {
   search?: string;
@@ -23,6 +23,13 @@ export const portalService = {
   async getAccounts(): Promise<Account[]> {
     await delay();
     return accounts;
+  },
+
+  async getAccountTransactions(accountId: number): Promise<AccountTransaction[]> {
+    await delay();
+    return accountTransactions
+      .filter((item) => item.accountId === accountId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   },
 
   async getProducts(accountId: number, query: ProductQuery = {}): Promise<Product[]> {
@@ -67,12 +74,14 @@ export const portalService = {
     const total = lines.reduce((sum, line) => {
       const product = pricedProducts.find((item) => item.id === line.productId);
       if (!product || product.stock < line.quantity) throw new Error("Sepette stok doğrulaması gereken ürün var.");
-      return sum + product.price * line.quantity;
+      const unitPrice = line.unitPrice ?? product.price;
+      return sum + unitPrice * line.quantity;
     }, 0);
     const account = accounts.find((item) => item.id === accountId);
     if (!account || total > account.availableCredit) {
       throw new Error("Kullanılabilir cari limit bu sipariş için yeterli değil.");
     }
+    const quoteId = lines.find((line) => line.quoteId)?.quoteId;
 
     const order: Order = {
       id: `B2B-2026-${String(3001 + state.orders.length).padStart(4, "0")}`,
@@ -85,6 +94,7 @@ export const portalService = {
       expectedDeliveryDate: new Date(Date.now() + 3 * 86_400_000).toISOString(),
       salesRepresentative: "Selin Yılmaz",
       shippingMethod: "Netsim Lojistik",
+      ...(quoteId ? { quoteId } : {}),
       deliveryAddress: input.deliveryAddress,
       paymentMethod: input.paymentMethod,
       note: input.note,

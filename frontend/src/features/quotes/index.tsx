@@ -53,11 +53,11 @@ export function QuotesPage() {
     <div className="page quotes-page">
       <header className="quotes-header">
         <div><span className="quotes-eyebrow">Satış Teklifleri</span><h1>Tekliflerim</h1><p>Firmanıza özel hazırlanan teklifleri inceleyin ve siparişe dönüştürün.</p></div>
-        <Link className="button quotes-request-button" to="/destek">＋ Yeni Teklif Talebi</Link>
+        <Link className="button quotes-request-button" to="/destek?type=Teklif">＋ Yeni Teklif Talebi</Link>
       </header>
 
       {isLoading ? <LoadingState label="Teklifler yükleniyor" /> : isError ? <ErrorState message="Teklifler şu anda yüklenemedi." /> : !quotes.length ? (
-        <Card className="quotes-empty-card"><EmptyState title="Henüz teklifiniz bulunmuyor" description="İhtiyacınız olan ürünler için satış ekibimizden firma özel teklif talep edebilirsiniz." action={<Link className="button button-primary" to="/destek">Teklif Talebi Oluştur</Link>} /></Card>
+        <Card className="quotes-empty-card"><EmptyState title="Henüz teklifiniz bulunmuyor" description="İhtiyacınız olan ürünler için satış ekibimizden firma özel teklif talep edebilirsiniz." action={<Link className="button button-primary" to="/destek?type=Teklif">Teklif Talebi Oluştur</Link>} /></Card>
       ) : (
         <>
           <div className="quotes-stats">
@@ -97,7 +97,7 @@ export function QuotesPage() {
             )}
           </Card>
 
-          <div className="quotes-info-note"><span>i</span><p><strong>Teklifler hakkında</strong><small>Teklif fiyatları belirtilen geçerlilik süresince korunur. Sipariş sırasında stok durumu yeniden doğrulanır.</small></p><Link to="/destek">Satış ekibine ulaşın →</Link></div>
+          <div className="quotes-info-note"><span>i</span><p><strong>Teklifler hakkında</strong><small>Teklif fiyatları belirtilen geçerlilik süresince korunur. Sipariş sırasında stok durumu yeniden doğrulanır.</small></p><Link to="/destek?type=Teklif">Satış ekibine ulaşın →</Link></div>
         </>
       )}
     </div>
@@ -130,8 +130,11 @@ export function QuoteDetailPage() {
   const stockAvailable = quote.lines.every((line) => (products.find((product) => product.id === line.productId)?.stock ?? 0) >= line.quantity);
 
   function acceptQuote() {
-    quote?.lines.forEach((line) => addToCart(line.productId, line.quantity));
-    navigate("/sepet");
+    quote.lines.forEach((line) => addToCart(line.productId, line.quantity, {
+      unitPrice: line.unitPrice,
+      quoteId: quote.id,
+    }));
+    navigate(`/sepet?quote=${quote.id}`);
   }
 
   async function downloadQuoteReport() {
@@ -392,11 +395,11 @@ export function QuoteDetailPage() {
             <div className="quote-stock-status"><span>Stok doğrulaması</span><strong className={stockAvailable ? "ok" : "warning"}>{stockAvailable ? "✓ Uygun" : "Teyit gerekli"}</strong></div>
             {canAccept && <label className="quote-terms"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} /><span>Teklif koşullarını, fiyatları ve teslimat bilgilerini okudum.</span></label>}
             <button className="button button-primary quote-accept-button" type="button" disabled={!canAccept || !termsAccepted} onClick={acceptQuote}>{canAccept ? "Teklifi Kabul Et ve Sepete Aktar" : "Teklif Süresi Doldu"}</button>
-            {!canAccept && <Link className="button quote-renew-button" to="/destek">Teklif Yenileme Talebi</Link>}
+            {!canAccept && <Link className="button quote-renew-button" to={`/destek?type=Teklif&ref=${quote.id}`}>Teklif Yenileme Talebi</Link>}
             <small>Kabul sonrasında ürünler sepetinize eklenir. Siparişinizi tamamlamadan önce son kontrol yapabilirsiniz.</small>
           </Card>
 
-          <Card className="quote-contact-card"><span>SY</span><div><small>Müşteri temsilciniz</small><strong>{quote.salesRepresentative}</strong><p>Teklifle ilgili sorularınız için destek alabilirsiniz.</p><Link to="/destek">Mesaj Gönder →</Link></div></Card>
+          <Card className="quote-contact-card"><span>SY</span><div><small>Müşteri temsilciniz</small><strong>{quote.salesRepresentative}</strong><p>Teklifle ilgili sorularınız için destek alabilirsiniz.</p><Link to={`/destek?type=Teklif&ref=${quote.id}`}>Mesaj Gönder →</Link></div></Card>
         </aside>
       </div>
     </div>

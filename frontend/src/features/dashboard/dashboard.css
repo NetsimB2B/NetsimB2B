@@ -75,6 +75,111 @@
   margin-bottom: 18px;
 }
 
+.dashboard-ops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dashboard-ops-card.card {
+  padding: 16px 18px;
+}
+
+.dashboard-ops-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dashboard-ops-head > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--primary-hover);
+  background: var(--dashboard-soft-navy);
+  font-size: 14px;
+}
+
+.dashboard-ops-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-ops-head strong {
+  display: block;
+  color: #172033;
+  font-size: 14px;
+}
+
+.dashboard-ops-head small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dashboard-ops-head > a {
+  color: var(--primary-hover);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dashboard-ops-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dashboard-ops-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-ops-card li + li {
+  margin-top: 8px;
+}
+
+.dashboard-ops-card li a {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  border: 1px solid #e8ecf1;
+  border-radius: 10px;
+  color: inherit;
+  background: #fafbfc;
+  text-decoration: none;
+}
+
+.dashboard-ops-card li a:hover {
+  border-color: #d5dde8;
+  background: #fff;
+}
+
+.dashboard-ops-card li strong {
+  grid-column: 1;
+  font-size: 13px;
+}
+
+.dashboard-ops-card li small {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dashboard-ops-card li span,
+.dashboard-ops-card li .badge {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .dashboard-stat.card {
   position: relative;
   display: flex;
@@ -453,6 +558,7 @@
 
 @media (max-width: 1180px) {
   .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-ops { grid-template-columns: 1fr; }
   .dashboard-banner.card { grid-template-columns: 1fr minmax(310px, .7fr); }
 }
 
