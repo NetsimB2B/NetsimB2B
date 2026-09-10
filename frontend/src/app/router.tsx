@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "@/app/shell/AppShell";
 import { CartPage } from "@/features/cart";
 import { CheckoutPage } from "@/features/checkout";
-import { AccountPage, AnnouncementsPage, FavoritesPage, FinancePage, InvoicesPage, NotificationsPage, ShipmentsPage, SupportPage } from "@/features/commerce";
+import { AccountPage, AnnouncementsPage, FavoritesPage, FinancePage, InvoicesPage, NotificationsPage, ShipmentDetailPage, ShipmentsPage, SupportPage } from "@/features/commerce";
 import { DashboardPage } from "@/features/dashboard";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { RequireMockAuth } from "@/features/auth/RequireMockAuth";
@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
       { path: "/siparisler", element: <OrdersPage /> },
       { path: "/siparisler/:id", element: <OrderDetailPage /> },
       { path: "/sevkiyatlar", element: <ShipmentsPage /> },
+      { path: "/sevkiyatlar/:id", element: <ShipmentDetailPage /> },
       { path: "/faturalar", element: <InvoicesPage /> },
       { path: "/finans", element: <FinancePage /> },
       { path: "/duyurular", element: <AnnouncementsPage /> },
