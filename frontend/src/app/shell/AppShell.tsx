@@ -8,11 +8,11 @@ import { CompanyLogo } from "@/shared/components/CompanyLogo";
 import { portalService } from "@/shared/services/portalService";
 
 const navigation = [
-  ["Ana Menü", [["/dashboard", "⌂", "Gösterge Paneli"]]],
-  ["Alışveriş", [["/urunler", "□", "Ürünler"], ["/hizli-siparis", "+", "Hızlı Sipariş"], ["/favoriler", "♡", "Favoriler"], ["/sepet", "▣", "Sepetim"]]],
-  ["Ticari İşlemler", [["/teklifler", "◇", "Tekliflerim"], ["/siparisler", "≡", "Siparişlerim"], ["/sevkiyatlar", "→", "Sevkiyatlar"], ["/faturalar", "▤", "Faturalar"]]],
-  ["Finans", [["/finans", "₺", "Cari Hesap"]]],
-  ["Diğer", [["/duyurular", "◉", "Duyurular"], ["/bildirimler", "●", "Bildirimler"], ["/hesabim", "○", "Hesabım"]]],
+  ["Ana Menü", [["/dashboard", "Gösterge Paneli"]]],
+  ["Alışveriş", [["/urunler", "Ürünler"], ["/hizli-siparis", "Hızlı Sipariş"], ["/favoriler", "Favoriler"], ["/sepet", "Sepetim"]]],
+  ["Ticari İşlemler", [["/teklifler", "Tekliflerim"], ["/siparisler", "Siparişlerim"], ["/sevkiyatlar", "Sevkiyatlar"], ["/faturalar", "Faturalar"]]],
+  ["Finans", [["/finans", "Cari Hesap"]]],
+  ["Diğer", [["/duyurular", "Duyurular"], ["/bildirimler", "Bildirimler"], ["/hesabim", "Hesabım"]]],
 ] as const;
 
 export function AppShell() {
@@ -52,9 +52,9 @@ export function AppShell() {
           {navigation.map(([group, links]) => (
             <div className="nav-group" key={group}>
               <span className="nav-group-label">{group}</span>
-              {links.map(([to, icon, label]) => (
+              {links.map(([to, label]) => (
                 <NavLink key={to} to={to} onClick={() => setMobileOpen(false)}>
-                  <span aria-hidden="true">{icon}</span>{label}
+                  {label}
                 </NavLink>
               ))}
             </div>
