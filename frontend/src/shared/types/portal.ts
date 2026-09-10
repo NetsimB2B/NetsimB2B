@@ -69,7 +69,7 @@ export type Order = {
   shipmentId?: string;
   invoiceId?: string;
   quoteId?: string;
-  deliveryAddress: string;
+  deliveryAddress?: string;
   paymentMethod: string;
   note?: string;
 };
@@ -89,7 +89,6 @@ export type Quote = {
   lines: Array<CartLine & {
     unitPrice: number;
     listPrice: number;
-    deliveryTime: string;
   }>;
   total: number;
 };

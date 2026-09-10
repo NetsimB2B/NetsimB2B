@@ -1,6 +1,8 @@
-import { accountTransactions, accounts, invoices, quotes, seedOrders, shipments } from "@/mocks/portalData";
+import { accountTransactions, accounts, invoices, shipments } from "@/mocks/portalData";
 import { useCompanyContext } from "@/features/company-context/store";
+import { fetchOrders, type ApiOrder } from "@/shared/api/ordersApi";
 import { fetchProduct, fetchProducts, type ApiProduct } from "@/shared/api/productsApi";
+import { fetchQuotes, type ApiQuote } from "@/shared/api/quotesApi";
 import { ApiError } from "@/shared/api/httpClient";
 import type { Account, AccountTransaction, Invoice, Order, Product, Quote, Shipment } from "@/shared/types/portal";
 
@@ -27,6 +29,47 @@ const unitLabels: Record<string, string> = {
   PK: "Paket",
   KUTU: "Kutu",
 };
+
+function toQuote(item: ApiQuote): Quote {
+  return {
+    id: item.id,
+    accountId: item.cariNo,
+    title: item.title,
+    reference: item.reference ?? "—",
+    createdAt: item.createdAt,
+    validUntil: item.validUntil,
+    status: item.status,
+    salesRepresentative: item.salesRepresentative ?? "Belirtilmemiş",
+    paymentTerm: item.paymentTerm ?? "Belirtilmemiş",
+    deliveryTerm: item.deliveryTerm ?? "Belirtilmemiş",
+    note: item.note ?? undefined,
+    total: item.total,
+    lines: item.lines.map((line) => ({
+      productId: line.productId,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      listPrice: line.listPrice,
+    })),
+  };
+}
+
+function toOrder(item: ApiOrder): Order {
+  return {
+    id: item.id,
+    accountId: item.cariNo,
+    createdAt: item.createdAt,
+    status: item.status,
+    lines: item.lines.map((line) => ({ productId: line.productId, quantity: line.quantity, unitPrice: line.unitPrice })),
+    total: item.total,
+    customerOrderNo: item.customerOrderNo ?? undefined,
+    expectedDeliveryDate: item.expectedDeliveryDate,
+    salesRepresentative: item.salesRepresentative ?? "Belirtilmemiş",
+    shippingMethod: item.shippingMethod ?? undefined,
+    quoteId: item.quoteId ?? undefined,
+    paymentMethod: item.paymentMethod ?? "Belirtilmemiş",
+    note: item.note ?? undefined,
+  };
+}
 
 function toProduct(item: ApiProduct): Product {
   const category = item.category ?? "Diğer";
@@ -89,9 +132,9 @@ export const portalService = {
   },
 
   async getOrders(accountId: number): Promise<Order[]> {
-    await delay();
-    return [...useCompanyContext.getState().orders, ...seedOrders]
-      .filter((order) => order.accountId === accountId);
+    const items = await fetchOrders(accountId);
+    const localOrders = useCompanyContext.getState().orders.filter((order) => order.accountId === accountId);
+    return [...localOrders, ...items.map(toOrder)];
   },
 
   async createOrder(accountId: number, input: CheckoutInput): Promise<Order> {
@@ -135,8 +178,8 @@ export const portalService = {
   },
 
   async getQuotes(accountId: number): Promise<Quote[]> {
-    await delay();
-    return quotes.filter((quote) => quote.accountId === accountId);
+    const items = await fetchQuotes(accountId);
+    return items.map(toQuote);
   },
 
   async getShipments(accountId: number): Promise<Shipment[]> {

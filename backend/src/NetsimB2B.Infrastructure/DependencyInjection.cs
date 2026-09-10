@@ -4,11 +4,15 @@ using NetsimB2B.Application.Abstractions.Data;
 using NetsimB2B.Application.Auth;
 using NetsimB2B.Application.Cart;
 using NetsimB2B.Application.Favorites;
+using NetsimB2B.Application.Orders;
 using NetsimB2B.Application.Products;
+using NetsimB2B.Application.Quotes;
 using NetsimB2B.Infrastructure.B2B;
 using NetsimB2B.Infrastructure.Netsim;
 using NetsimB2B.Infrastructure.Netsim.Accounts;
+using NetsimB2B.Infrastructure.Netsim.Orders;
 using NetsimB2B.Infrastructure.Netsim.Products;
+using NetsimB2B.Infrastructure.Netsim.Quotes;
 using NetsimB2B.Infrastructure.Security;
 
 namespace NetsimB2B.Infrastructure;
@@ -26,6 +30,8 @@ public static class DependencyInjection
         services.AddSingleton<IB2BConnectionFactory>(new FirebirdB2BConnectionFactory(b2bConnectionString));
 
         services.AddScoped<IProductReadService, NetsimProductReadService>();
+        services.AddScoped<IQuoteReadService, NetsimQuoteReadService>();
+        services.AddScoped<IOrderReadService, NetsimOrderReadService>();
 
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IUserCredentialStore, UserCredentialStore>();

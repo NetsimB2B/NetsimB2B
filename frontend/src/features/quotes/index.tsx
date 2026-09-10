@@ -362,7 +362,7 @@ export function QuoteDetailPage() {
                     <td><Badge tone="success">%{discountRate.toFixed(1)}</Badge></td>
                     <td><strong>{formatMoney(line.unitPrice)}</strong></td>
                     <td><strong className="quote-line-total">{formatMoney(line.unitPrice * line.quantity)}</strong></td>
-                    <td><span>{line.deliveryTime}</span><small className={product.stock >= line.quantity ? "stock-ok" : "stock-warning"}>{product.stock >= line.quantity ? "● Stok uygun" : "● Stok teyidi gerekli"}</small></td>
+                    <td><span>{product.stock > 0 ? "Stoktan teslim" : "Sipariş üzerine"}</span><small className={product.stock >= line.quantity ? "stock-ok" : "stock-warning"}>{product.stock >= line.quantity ? "● Stok uygun" : "● Stok teyidi gerekli"}</small></td>
                   </tr>;
                 })}</tbody>
               </table>

@@ -116,7 +116,7 @@ export function OrderDetailPage() {
           </Card>
 
           <div className="order-info-grid">
-            <Card><span>⌖</span><div><h3>Teslimat Bilgileri</h3><p>{order.deliveryAddress}</p><dl><div><dt>Taşıma yöntemi</dt><dd>{order.shippingMethod ?? "Planlanıyor"}</dd></div><div><dt>Tahmini teslim</dt><dd>{order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : "Planlanıyor"}</dd></div></dl></div></Card>
+            <Card><span>⌖</span><div><h3>Teslimat Bilgileri</h3><p>{order.deliveryAddress ?? account?.address ?? "Belirtilmemiş"}</p><dl><div><dt>Taşıma yöntemi</dt><dd>{order.shippingMethod ?? "Planlanıyor"}</dd></div><div><dt>Tahmini teslim</dt><dd>{order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : "Planlanıyor"}</dd></div></dl></div></Card>
             <Card><span>₺</span><div><h3>Ödeme ve Faturalama</h3><dl><div><dt>Ödeme koşulu</dt><dd>{order.paymentMethod}</dd></div><div><dt>Fatura No</dt><dd>{order.invoiceId ? <Link to={`/faturalar/${order.invoiceId}`}>{order.invoiceId}</Link> : "Sipariş sonrası oluşacak"}</dd></div>{order.quoteId && <div><dt>Kaynak teklif</dt><dd><Link to={`/teklifler/${order.quoteId}`}>{order.quoteId}</Link></dd></div>}</dl></div></Card>
           </div>
           {order.note && <div className="order-note"><span>i</span><p><strong>Sipariş Notu</strong><small>{order.note}</small></p></div>}

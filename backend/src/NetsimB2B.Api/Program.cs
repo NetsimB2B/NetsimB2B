@@ -57,6 +57,8 @@ app.MapAuthEndpoints();
 app.MapProductEndpoints();
 app.MapCartEndpoints();
 app.MapFavoriteEndpoints();
+app.MapQuoteEndpoints();
+app.MapOrderEndpoints();
 
 app.Run();
 

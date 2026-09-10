@@ -1,4 +1,4 @@
-import type { Account, AccountTransaction, Invoice, Order, Quote, Shipment } from "@/shared/types/portal";
+import type { Account, AccountTransaction, Invoice, Shipment } from "@/shared/types/portal";
 
 export const accounts: Account[] = [
   {
@@ -52,23 +52,12 @@ export const accountTransactions: AccountTransaction[] = [
   { id: "TX-1002-01", accountId: 1002, date: "2026-08-10", document: "CEK-2026-0088", documentType: "Çek", description: "Müşteri çeki tahsilatı", debit: 0, credit: 25_000, balanceAfter: 61_880, status: "Kapalı" },
 ];
 
-// Ürün kataloğu artık gerçek veritabanından geliyor (bkz. shared/api/productsApi.ts).
-// Aşağıdaki teklif/sipariş/fatura mock verileri productId 1-12 referanslarını kullanır —
-// bunlar netsim-dev veritabanındaki STOKKART.STOK_NO 1-12 ile birebir eşleşecek şekilde
-// tasarlanmıştır (bkz. database/firebird/netsim-dev/README.md).
-
-export const quotes: Quote[] = [
-  { id: "TKL-2026-0142", accountId: 1001, title: "Motor ve sürücü paketi", reference: "RFQ-2026-0087", createdAt: "2026-09-05", validUntil: "2026-09-30", status: "Geçerli", salesRepresentative: "Selin Yılmaz", paymentTerm: "30 Gün Vadeli", deliveryTerm: "Stoktan 2–3 iş günü", note: "Fiyatlara KDV dahil değildir. Sevkiyat tek parti olarak planlanmıştır.", lines: [{ productId: 1, quantity: 5, listPrice: 12_450, unitPrice: 12_000, deliveryTime: "Stoktan teslim" }, { productId: 6, quantity: 5, listPrice: 14_320, unitPrice: 13_480, deliveryTime: "2–3 iş günü" }], total: 127_400 },
-  { id: "TKL-2026-0118", accountId: 1001, title: "Bakım dönemi rulmanları", reference: "RFQ-2026-0061", createdAt: "2026-08-18", validUntil: "2026-08-31", status: "Süresi Doldu", salesRepresentative: "Selin Yılmaz", paymentTerm: "Havale / EFT", deliveryTerm: "Stoktan 1–2 iş günü", note: "Toplu alım fiyatıdır.", lines: [{ productId: 7, quantity: 100, listPrice: 385, unitPrice: 365, deliveryTime: "Stoktan teslim" }], total: 36_500 },
-  { id: "TKL-2026-0204", accountId: 1002, title: "Pompa yenileme teklifi", reference: "RFQ-2026-0129", createdAt: "2026-09-07", validUntil: "2026-10-15", status: "Geçerli", salesRepresentative: "Emre Kaya", paymentTerm: "Peşin", deliveryTerm: "3–5 iş günü", lines: [{ productId: 3, quantity: 2, listPrice: 30_475, unitPrice: 29_450, deliveryTime: "3–5 iş günü" }], total: 58_900 },
-];
-
-export const seedOrders: Order[] = [
-  { id: "B2B-2026-1002", accountId: 1001, createdAt: "2026-09-08T09:30:00Z", status: "Sevk Edildi", lines: [{ productId: 1, quantity: 3 }, { productId: 7, quantity: 20 }], total: 45_050, customerOrderNo: "SAS-2026-184", expectedDeliveryDate: "2026-09-11", salesRepresentative: "Selin Yılmaz", shippingMethod: "Netsim Lojistik", shipmentId: "SVK-2026-0088", invoiceId: "FTR-2026-1482", quoteId: "TKL-2026-0142", deliveryAddress: "Merkez Mah. Sanayi Cad. No:12 İstanbul", paymentMethod: "30 Gün Vadeli", note: "Mal kabul hafta içi 09.00–16.00 arasındadır." },
-  { id: "B2B-2026-1001", accountId: 1001, createdAt: "2026-09-04T12:15:00Z", status: "Sevk Edildi", lines: [{ productId: 4, quantity: 2 }], total: 19_360, customerOrderNo: "SAS-2026-172", expectedDeliveryDate: "2026-09-07", salesRepresentative: "Selin Yılmaz", shippingMethod: "Müşteri Aracı", shipmentId: "SVK-2026-0081", invoiceId: "FTR-2026-1398", deliveryAddress: "Merkez Mah. Sanayi Cad. No:12 İstanbul", paymentMethod: "Havale / EFT" },
-  { id: "B2B-2026-0988", accountId: 1001, createdAt: "2026-08-22T11:00:00Z", status: "Sevk Edildi", lines: [{ productId: 7, quantity: 50 }], total: 19_250, customerOrderNo: "SAS-2026-160", expectedDeliveryDate: "2026-08-26", salesRepresentative: "Selin Yılmaz", shippingMethod: "Netsim Lojistik", invoiceId: "FTR-2026-1431", deliveryAddress: "Merkez Mah. Sanayi Cad. No:12 İstanbul", paymentMethod: "14 Gün Vadeli" },
-  { id: "B2B-2026-2001", accountId: 1002, createdAt: "2026-09-06T08:20:00Z", status: "Hazırlanıyor", lines: [{ productId: 3, quantity: 1 }], total: 30_475, customerOrderNo: "PO-45871", expectedDeliveryDate: "2026-09-12", salesRepresentative: "Emre Kaya", shippingMethod: "Netsim Lojistik", shipmentId: "SVK-2026-0094", invoiceId: "FTR-2026-1520", quoteId: "TKL-2026-0204", deliveryAddress: "Organize Sanayi Bölgesi 4. Cad. Bursa", paymentMethod: "Peşin" },
-];
+// Ürün kataloğu, teklifler ve siparişler artık gerçek veritabanından geliyor (bkz.
+// shared/api/productsApi.ts, shared/api/quotesApi.ts, shared/api/ordersApi.ts). Aşağıdaki
+// sevkiyat/fatura mock verileri hâlâ B2B-2026-xxxx sipariş no'larına referans veriyor —
+// bunlar netsim-dev veritabanındaki gerçek siparişlerle (BELGE_NO) birebir eşleşecek
+// şekilde tasarlanmıştır (bkz. database/firebird/netsim-dev/README.md). "B2B-2026-0988"
+// siparişinin netsim-dev'de karşılığı yok (bkz. V003__enrich_order_display_fields.sql notu).
 
 export const shipments: Shipment[] = [
   { id: "SVK-2026-0088", accountId: 1001, orderId: "B2B-2026-1002", date: "2026-09-08T13:40:00Z", status: "Yolda", carrier: "Netsim Lojistik", trackingNo: "NTS2609080088", estimatedDelivery: "2026-09-11T14:00:00Z", origin: "Netsim İstanbul Merkez Depo", destination: "Merkez Mah. Sanayi Cad. No:12 İstanbul", packageCount: 3, totalWeight: 96.5, vehiclePlate: "34 NTS 088", driverName: "Murat Demir", events: [{ date: "2026-09-08T10:15:00Z", title: "Sevkiyat emri oluşturuldu", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-08T13:40:00Z", title: "Araç yüklemesi tamamlandı", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-09T08:20:00Z", title: "Dağıtım merkezinden çıktı", location: "İstanbul Avrupa Yakası", completed: true }, { date: "2026-09-11T14:00:00Z", title: "Planlanan teslimat", location: "Müşteri teslimat adresi", completed: false }] },
