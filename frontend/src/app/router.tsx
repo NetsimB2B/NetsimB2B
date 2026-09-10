@@ -5,7 +5,7 @@ import { CheckoutPage } from "@/features/checkout";
 import { AccountPage, AnnouncementsPage, FavoritesPage, FinancePage, InvoicesPage, NotificationsPage, ShipmentDetailPage, ShipmentsPage, SupportPage } from "@/features/commerce";
 import { DashboardPage } from "@/features/dashboard";
 import { LoginPage } from "@/features/auth/LoginPage";
-import { RequireMockAuth } from "@/features/auth/RequireMockAuth";
+import { RequireAuth } from "@/features/auth/RequireAuth";
 import { OrderDetailPage, OrdersPage } from "@/features/orders";
 import { ProductDetailPage, ProductsPage } from "@/features/products";
 import { QuickOrderPage } from "@/features/quick-order";
@@ -20,9 +20,9 @@ export const router = createBrowserRouter([
   },
   {
     element: (
-      <RequireMockAuth>
+      <RequireAuth>
         <AppShell />
-      </RequireMockAuth>
+      </RequireAuth>
     ),
     errorElement: <RouteErrorPage />,
     children: [

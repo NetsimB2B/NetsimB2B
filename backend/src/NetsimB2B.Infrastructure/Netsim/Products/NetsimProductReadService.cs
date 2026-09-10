@@ -13,12 +13,21 @@ internal sealed class NetsimProductReadService(INetsimConnectionFactory connecti
         int pageSize,
         CancellationToken cancellationToken)
     {
+        // STOKKART alanları müşteri Netsim kurulumu üzerinde doğrulanmalıdır.
+        // STOKKART'ta BIRIM kolonu yok; birim STOKBIRI'den STOK_NO + SIRA_NO=1 (ana birim) ile
+        // okunur. VARSAYIM: SIRA_NO=1 ana birimi temsil eder, Netsim'de doğrulanmalıdır.
+        // STOK_NO Netsim'de INTEGER (Int32); Dapper'ın record constructor eşlemesi Int32->long
+        // genişletmesini otomatik yapmadığından BIGINT'e cast edilir.
+        // NOT: SQL metni (yorumlar dahil) içine tek tırnak veya @ işareti KOYMAYIN — bu ADO.NET
+        // sürücüsünün istemci taraflı parametre ayıklayıcısı SQL yorumlarını atlamıyor; yorum
+        // içindeki bir tek tırnak "string literal başladı" sanılmasına (sonraki @param'lar literal
+        // metin olarak sunucuya gider, "Token unknown @"), yorum içindeki çıplak bir @ ise geçersiz
+        // parametre adı olarak yorumlanmasına ("Must declare the variable '@'") yol açıyor — ikisi
+        // de gerçekten yaşandı ve doğrulandı. Bu yüzden bu notlar SQL string'i DIŞINDA, C# yorumu
+        // olarak tutuluyor.
         const string sql = """
-            /* STOKKART alanları müşteri Netsim kurulumu üzerinde doğrulanmalıdır. */
-            /* STOKKART'ta BIRIM kolonu yok; birim STOKBIRI'den STOK_NO + SIRA_NO=1 (ana birim) ile okunur.
-               ⚠️ VARSAYIM: SIRA_NO=1 ana birimi temsil ediyor — müşteri Netsim kurulumunda doğrulanmalıdır. */
             SELECT FIRST @PageSize SKIP @Offset
-                S.STOK_NO AS Id,
+                CAST(S.STOK_NO AS BIGINT) AS Id,
                 S.STOK_KODU AS Code,
                 S.STOK_ADI AS Name,
                 SB.BIRIM AS Unit

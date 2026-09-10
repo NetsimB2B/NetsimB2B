@@ -4,7 +4,7 @@ services:
     container_name: netsim-b2b-firebird
     restart: unless-stopped
     ports:
-      - "3050:3050"
+      - "3052:3050"
     environment:
       FIREBIRD_ROOT_PASSWORD: ${FIREBIRD_ROOT_PASSWORD}
       FIREBIRD_DATABASE: ${FIREBIRD_DATABASE}

@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import netsimLogo from "@/assets/netsim-logo.png";
 import { useCompanyContext } from "@/features/company-context/store";
-import { authenticateMockUser, isMockAuthenticated, mockCredentials } from "./mockAuth";
+import { login } from "./authApi";
 import "./login.css";
+
+const demoCredentials = { email: "demo@netsim.com", password: "Netsim123!" } as const;
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -13,20 +16,21 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  const loginMutation = useMutation({
+    mutationFn: () => login(email, password),
+    onSuccess: (session) => {
+      setActiveCariNo(session.defaultCariNo);
+      navigate("/dashboard", { replace: true });
+    },
+    onError: () => {
+      setError("E-posta adresi veya şifre hatalı.");
+    },
+  });
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!authenticateMockUser(email, password)) {
-      setError("E-posta adresi veya şifre hatalı.");
-      return;
-    }
-
-    setActiveCariNo(mockCredentials.accountId);
-    navigate("/dashboard", { replace: true });
-  }
-
-  if (isMockAuthenticated()) {
-    return <Navigate to="/dashboard" replace />;
+    setError("");
+    loginMutation.mutate();
   }
 
   return (
@@ -69,8 +73,8 @@ export function LoginPage() {
 
           <div className="login-demo-note" aria-label="Demo giriş bilgileri">
             <strong>Demo hesabı</strong>
-            <span>{mockCredentials.email}</span>
-            <span>{mockCredentials.password}</span>
+            <span>{demoCredentials.email}</span>
+            <span>{demoCredentials.password}</span>
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
@@ -139,8 +143,8 @@ export function LoginPage() {
               </p>
             )}
 
-            <button className="login-submit" type="submit">
-              Giriş Yap
+            <button className="login-submit" type="submit" disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? "Giriş yapılıyor…" : "Giriş Yap"}
             </button>
           </form>
 
