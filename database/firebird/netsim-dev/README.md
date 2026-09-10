@@ -48,8 +48,13 @@ silip yukarıdaki adımları tekrarlayın (script'ler deterministiktir, aynı ve
 ## Bağlantı bilgisi (appsettings / .env)
 
 ```
-ConnectionStrings__Netsim=User=SYSDBA;Password=devonly;Database=localhost/3051:/var/lib/firebird/data/NETSIM_DEV.FDB;DataSource=localhost;Port=3051;Dialect=3;Charset=UTF8;Pooling=true;
+ConnectionStrings__Netsim=User=SYSDBA;Password=devonly;Database=/var/lib/firebird/data/NETSIM_DEV.FDB;DataSource=localhost;Port=3051;Dialect=3;Charset=UTF8;Pooling=true;
 ```
+
+⚠️ **Düzeltildi (2026-09-10):** `Database` alanına `host/port:yol` gömmek, `DataSource`/`Port`
+ayrıca verildiğinde `FirebirdSql.Data.FirebirdClient` 10.x'te yanlış parse ediliyor
+(`I/O error ... file localhost\3051` hatası — gerçekten çalıştırılıp doğrulandı). `Database`
+yalnızca dosya yolu olmalı, host/port bilgisi sadece `DataSource`/`Port` alanlarında olmalı.
 
 `.env.example`'daki `ConnectionStrings__Netsim` B2B'nin *kendi* veritabanını (`NETSIM_B2B.FDB`,
 port 3050) gösterir — o ayrı kalmalı. Backend'i bu mock'a karşı çalıştırmak için yerel

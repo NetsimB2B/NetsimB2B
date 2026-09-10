@@ -1,4 +1,5 @@
 using NetsimB2B.Domain.Catalog;
+using Xunit;
 
 namespace NetsimB2B.UnitTests.Catalog;
 

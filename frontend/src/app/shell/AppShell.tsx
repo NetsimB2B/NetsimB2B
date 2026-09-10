@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import netsimLogo from "@/assets/netsim-logo.png";
-import { clearMockSession } from "@/features/auth/mockAuth";
+import { fetchMe, logout } from "@/features/auth/authApi";
 import { useCompanyContext } from "@/features/company-context/store";
 import { CompanyLogo } from "@/shared/components/CompanyLogo";
 import { portalService } from "@/shared/services/portalService";
@@ -17,6 +17,12 @@ const navigation = [
 
 const UNREAD_NOTIFICATION_COUNT = 2;
 
+function initials(displayName: string | undefined) {
+  if (!displayName) return "…";
+  const parts = displayName.trim().split(/\s+/);
+  return parts.slice(0, 2).map((part) => part[0]?.toLocaleUpperCase("tr-TR")).join("");
+}
+
 export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,12 +33,16 @@ export function AppShell() {
   const notificationsRead = useCompanyContext((state) => state.notificationsRead);
   const cartCount = useCompanyContext((state) =>
     (state.cartByAccount[state.activeCariNo] ?? []).reduce((sum, line) => sum + line.quantity, 0));
-  const { data: accounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
+  const { data: allAccounts = [] } = useQuery({ queryKey: ["accounts"], queryFn: () => portalService.getAccounts() });
+  const { data: session } = useQuery({ queryKey: ["auth", "me"], queryFn: fetchMe, retry: false });
+  const allowedCariNos = new Set(session?.accounts.map((account) => account.cariNo) ?? []);
+  const accounts = allAccounts.filter((account) => allowedCariNos.has(account.id));
   const activeAccount = accounts.find((account) => account.id === activeCariNo);
   const unreadCount = notificationsRead ? 0 : UNREAD_NOTIFICATION_COUNT;
 
-  function handleLogout() {
-    clearMockSession();
+  async function handleLogout() {
+    await logout();
+    void queryClient.invalidateQueries();
     navigate("/login", { replace: true });
   }
 
@@ -94,8 +104,8 @@ export function AppShell() {
           <Link className="topbar-cart" to="/sepet" aria-label={`Sepet, ${cartCount} ürün`}>Sepet <strong>{cartCount}</strong></Link>
           <div className="profile-menu">
             <Link className="profile-link" to="/hesabim">
-              <span className="avatar">BA</span>
-              <span className="profile-copy"><strong>Burak Admin</strong><small>Satın Alma</small></span>
+              <span className="avatar">{initials(session?.user.displayName)}</span>
+              <span className="profile-copy"><strong>{session?.user.displayName ?? "…"}</strong><small>{session?.user.email}</small></span>
             </Link>
             <button className="logout-button" type="button" onClick={handleLogout}>Çıkış</button>
           </div>
