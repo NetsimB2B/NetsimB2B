@@ -73,17 +73,52 @@ Doğrulanmış diğer alanlar:
 
 ## CARIISLM (NS_CARIISLM)
 
-Cari hareketler. PK: `CARI_ISLEM_NO`.
+Cari hareketler/ekstre. PK: `CARI_ISLEM_NO`. `NetsimFinanceReadService.cs` bu tabloyu
+kullanıyor (Finans/Cari Hesap modülü, 2026-09-11).
 
-Aday alanlar (henüz tek tek doğrulanmadı — sadece nesne/PK doğrulandı):
-- CARI_ISLEM_NO
-- CARI_NO
-- BORC
-- ALACAK
-- BAKIYE
-- VADE_TARIHI
-- KAPANDI
-- KAPANMA
+Doğrulanmış ve B2B'de fiilen okunan alanlar:
+- CARI_ISLEM_NO, CARI_NO
+- BORC, ALACAK, BAKIYE, GENEL_BAKIYE
+- TARIH, VADE_TARIHI
+- BELGE_NO, ISLEM_KODU, ISLEM_ADI, ACIKLAMA, DURUM, DOVIZ_BIRIMI
+- REFERANS_ALISSATIS_NO (→ ALSAASIL.ALISSATIS_NO; bir faturaya/işleme bağlı hareketi işaretler)
+
+⚠️ `netsim-dev` mock'unda bu tablo **tamamen boştu** (V001 seed'i üretmiyordu) —
+`netsim_seed_gen.py`'a eklenen `gen_cariislm_rows` ile eski frontend mock'undaki
+(`accountTransactions`) değerlerle seed edildi (bkz. netsim-dev/README.md).
+
+⚠️ **VARSAYIM — henüz doğrulanmadı:** "Vadesi geçen tutar" gibi özet metrikler için B2B
+tarafında bir *açık kalem netleme* mantığı uygulanıyor (aynı `REFERANS_ALISSATIS_NO`'ya
+bağlı borç/alacak satırları netleştiriliyor, `DURUM='Vadesi Geçti'` olan faturanın grubu
+sayılıyor — bkz. `NetsimFinanceReadService.cs` yorumları). Gerçek Netsim'de açık kalem
+eşleştirmesinin bu tabloda mı yoksa ayrı bir muhasebe modülünde mi yapıldığı, ve `DURUM`
+alanının gerçek domain değerlerinin ne olduğu doğrulanmadı. `KAPANDI`/`KAPANMA` alanları
+şemada var ama B2B tarafında henüz kullanılmıyor.
+
+## CARIKALI (NS_CARIKALI)
+
+Cari kredi limiti. PK: `CARI_KART_LIMIT_NO`. Kaynakta **görünüm** (`CARIKALI`) + fiziksel
+tablo (`NS_CARIKALI`) ikilisi olarak yer alıyor — aynı `CARIKART`/`NS_CARIKART` deseni.
+`NetsimFinanceReadService.cs` bu tabloyu Finans modülünde bakiye/limit için kullanıyor
+(2026-09-11). **`CARIKART`'ta bakiye veya kredi limiti alanı YOKTUR** — bu bilgi yalnızca
+`CARIKALI`'da tutuluyor, `CARI_NO` üzerinden join gerekir.
+
+NOT NULL alanlar: `CARI_KART_LIMIT_NO`, `LIMIT_TURU`.
+
+Doğrulanmış diğer alanlar: `CARI_NO`, `FIRMA_NO`, `BLOKE_MAX` (kredi limiti tavanı),
+`TOPLAM_RISK` (güncel bakiye/risk tutarı), `TOPLAM`, `UYARI_MIN`/`UYARI_MAX`,
+`BLOKE_MIN`, `RISK_YUZDESI`, `GUNCELLEME_TARIHI`.
+
+⚠️ Bu tablo B2B ihtiyacı ortaya çıkana kadar `netsim-dev`'in 25 tablolu alt kümesinde
+**yoktu** — `netsim_ddl_gen.py`'a eklenip şema dokümanından üretildi, uydurulmadı (bkz.
+netsim-dev/README.md → "Sadece 25 fiziksel tablo... dışında bir tabloya ihtiyaç duyulursa
+genişletilmeli" kuralı).
+
+⚠️ **VARSAYIM — henüz doğrulanmadı:** `LIMIT_TURU` alanının domain değerleri bilinmiyor;
+B2B `'GENEL'` değerini varsayım olarak kullanıyor (bir cari birden fazla limit türüne
+sahip olabilir — örn. döviz bazlı, teminat karşılığı vb. — bu ayrım netleştirilmeli).
+Bakiye = `TOPLAM_RISK`, kullanılabilir limit = `BLOKE_MAX - TOPLAM_RISK` yorumu da
+alan adlarından çıkarılan mantıklı bir varsayım, Netsim'de doğrulanmadı.
 
 ## STOKKART (NS_STOKKART)
 
@@ -184,7 +219,47 @@ Diğer doğrulanmış alanlar: `ALISSATIS_NO`, `SIRA_NO`, `STOK_NO`, `BIRIM`, `B
 
 ## STOKASIL
 
-Stok işlem/sevkiyat header. Nesne/PK doğrulandı (`NS_STOKASIL`, PK `STOK_ISLEMA_NO`),
+Stok işlem başlığı (117 alan). PK: `STOK_ISLEMA_NO`. `NetsimShipmentReadService.cs` bu
+tabloyu Sevkiyatlar modülünde kullanıyor (2026-09-11) — tüm alanlar tek tek tarandı.
+
+⚠️ Genel bir stok hareket başlığı (muhtemelen üretim/transfer/sayım gibi başka hareket
+türlerini de tutuyor) — yalnızca sevkiyat amaçlı değil. B2B, `ISLEM_KODU='SEVKIYAT'`
+olan satırları müşteri sevkiyatı olarak okuyor (⚠️ VARSAYIM, gerçek değer doğrulanmadı).
+
+Doğrulanmış ve B2B'de fiilen okunan alanlar:
+- STOK_ISLEMA_NO, TARIH, ISLEM_KODU, ISLEM_ADI, DURUM, DURUM_TARIHI, BELGE_NO
+- ALISSATIS_NO (→ ALSAASIL.ALISSATIS_NO, kaynak sipariş)
+- CARI_NO (→ CARIKART, alıcı)
+- CIKIS_STOK_YERI_NO (→ STOKYERI, çıkış deposu — GIRIS_STOK_YERI_NO da var, muhtemelen
+  transfer hareketlerinde "varış deposu" anlamında, sevkiyatta kullanılmadı)
+- SEVK_NAKLIYECI_FIRMA_NO (→ CARIKART; taşıyıcı da bir cari kaydı — ⚠️ VARSAYIM, netsim-dev'e
+  bu amaçla yeni bir cari eklendi, bkz. netsim_seed_gen.py → CARRIERS/TASIYICI_CARI_NO)
+- ARAC_PLAKA, ARAC_SOFOR, ARAC_SOFOR_TELEFON (ve ikinci araç/şoför için ARAC_PLAKA2/
+  ARAC_SOFOR2/ARAC_SOFOR2_TELEFON — B2B henüz kullanmıyor)
+- KARGO_REFERANS_NO (kargo takip no için kullanıldı — ⚠️ VARSAYIM: `TAKIP_NO` alanı da var
+  ama ALSAASIL'de de bulunan daha genel/dahili bir takip alanı gibi duruyor, kargo takip
+  no'sundan farklı olabileceği düşünüldü, doğrulanmadı)
+
+⚠️ B2B'nin **kullanmadığı** ama var olan ilgili alanlar: `KARGO_TOPLAM_DESI` (hacimsel
+birim — kg değil, "toplam ağırlık" olarak yanlış etiketlenmemesi için taşınmadı),
+`KARGO_ODEMESI`, `SEVK_CARI_ADI`/`SEVK_ACIKLAMA`/`SEVK_REFERANS_NO` (muhtemelen sevkiyata
+özel ayrı bir alıcı adı/not/referans — henüz incelenmedi), `NAKLIYE_TIP_NO`.
+
+**Ayrıca araştırılan ama kullanılmayan ilgili tablolar:**
+- `NS_ALSATESL` (Teslimat/sevkiyat bilgisi, 65 alan, PK `ALISSATIS_TESLIM_NO`) — sipariş
+  **satırı** bazında (`ALISSATIS_DETAY_NO` → ALSADETA) planlanan/onaylanan/gerçekleşen
+  teslimat tarihini (`KESIN_TERMIN_TARIHI`/`MUSTERI_ONAY_TARIHI`/`MUSTERI_TESLIM_TARIHI`)
+  ve teslimat yerini (`TESLIM_YERI`, serbest metin) tutuyor. Şemada var, netsim-dev'de
+  seed edilmedi — gelecekte `estimatedDelivery`'nin STOKASIL'e bağlı siparişin
+  `VADE_TARIHI`'si yerine bu tablodan (daha isabetli) okunması için aday.
+- `NS_ARACKART` (Araç kartı, 69 alan, PK `ARAC_NO`) — `PLAKA` alanı var ama STOKASIL'den
+  buna giden doğrulanmış bir ilişki bulunamadı (STOKASIL kendi `ARAC_PLAKA`'sını serbest
+  metin olarak tutuyor, ARACKART'a referans vermiyor).
+- `NS_GUZERGAH` (Güzergah/rota) — incelenmedi.
+
+## STOKISLM
+
+Stok hareket satırları. Nesne/PK doğrulandı (`NS_STOKISLM`, PK `STOK_ISLEM_NO`),
 alan bazlı iş anlamı doğrulanmadı.
 
 ## STOKISLM

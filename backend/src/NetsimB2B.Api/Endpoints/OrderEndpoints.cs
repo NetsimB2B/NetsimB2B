@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using NetsimB2B.Application.Abstractions.Security;
 using NetsimB2B.Application.Orders;
 
@@ -16,6 +17,25 @@ public static class OrderEndpoints
         {
             var result = await orders.GetForCariAsync(companyContext.CariNo, cancellationToken);
             return Results.Ok(result);
+        });
+
+        group.MapPost("/", async (
+            CreateOrderRequest request,
+            HttpContext httpContext,
+            ICurrentCompanyContext companyContext,
+            IOrderWriteService orderWriteService,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var userId = Guid.Parse(httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var order = await orderWriteService.CreateFromCartAsync(userId, companyContext.CariNo, request, cancellationToken);
+                return Results.Ok(order);
+            }
+            catch (OrderCreationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
         });
 
         return endpoints;

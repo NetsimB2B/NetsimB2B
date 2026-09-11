@@ -9,6 +9,7 @@ using NetsimB2B.Application.Invoices;
 using NetsimB2B.Application.Orders;
 using NetsimB2B.Application.Products;
 using NetsimB2B.Application.Quotes;
+using NetsimB2B.Application.Shipments;
 using NetsimB2B.Infrastructure.B2B;
 using NetsimB2B.Infrastructure.Netsim;
 using NetsimB2B.Infrastructure.Netsim.Accounts;
@@ -17,6 +18,7 @@ using NetsimB2B.Infrastructure.Netsim.Invoices;
 using NetsimB2B.Infrastructure.Netsim.Orders;
 using NetsimB2B.Infrastructure.Netsim.Products;
 using NetsimB2B.Infrastructure.Netsim.Quotes;
+using NetsimB2B.Infrastructure.Netsim.Shipments;
 using NetsimB2B.Infrastructure.Security;
 
 namespace NetsimB2B.Infrastructure;
@@ -36,8 +38,10 @@ public static class DependencyInjection
         services.AddScoped<IProductReadService, NetsimProductReadService>();
         services.AddScoped<IQuoteReadService, NetsimQuoteReadService>();
         services.AddScoped<IOrderReadService, NetsimOrderReadService>();
+        services.AddScoped<IOrderWriteService, NetsimOrderWriteService>();
         services.AddScoped<IInvoiceReadService, NetsimInvoiceReadService>();
         services.AddScoped<IFinanceReadService, NetsimFinanceReadService>();
+        services.AddScoped<IShipmentReadService, NetsimShipmentReadService>();
 
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<IUserCredentialStore, UserCredentialStore>();

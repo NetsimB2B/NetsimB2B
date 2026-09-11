@@ -29,6 +29,7 @@ TABLES_NEEDED = [
     "NS_FIRMALAR", "NS_CARIKART", "NS_CARIISLM", "NS_CARIKALI", "NS_STOKMARK",
     "NS_STOKURHA", "NS_BIRIMLER", "NS_STOKKART", "NS_STOKBIRI", "NS_STOKYERI",
     "NS_STOKKADE", "NS_FIYALIST", "NS_FIYADETA", "NS_ALSAASIL", "NS_ALSADETA",
+    "NS_STOKASIL",
 ]
 
 # ⚠️ VARSAYIM — Netsim'den doğrulanacak: gerçek işlem kodu değerlerini bilmiyoruz.
@@ -261,6 +262,17 @@ def gen_firmalar_rows() -> list[dict]:
     }]
 
 
+# Sevkiyat taşıyıcısı da Netsim'de bir cari kayıttır (STOKASIL.SEVK_NAKLIYECI_FIRMA_NO
+# CARIKART'a referans verir) — bayilerden ayırt etmek için MUHASEBE_CARI_TURU='TEDARIKCI'
+# kullanıldı (⚠️ VARSAYIM, gerçek domain değeri doğrulanmadı). Bkz. gen_stokasil_rows.
+TASIYICI_CARI_NO = 9001
+
+CARRIERS = [
+    {"cari_no": TASIYICI_CARI_NO, "cari_kodu": "CR-9001-LOJ", "cari_adi": "Netsim Lojistik",
+     "email": "info@netsim-lojistik-dev.local"},
+]
+
+
 def gen_carikart_rows() -> list[dict]:
     rows = []
     for b in BAYILER:
@@ -269,6 +281,13 @@ def gen_carikart_rows() -> list[dict]:
             "MUHASEBE_CARI_TURU": "BAYI", "BLOKE": "H", "KAYIT_DURUMU": "A",
             "KREDILI_ISLEM": "E", "EMAIL": b["email"], "VERGI_DAIRESI": "Merkez",
             "VERGI_NO": str(1_000_000_000 + b["cari_no"]), "BAYI_TURU": "BAYI",
+        })
+    for c in CARRIERS:
+        rows.append({
+            "CARI_NO": c["cari_no"], "CARI_KODU": c["cari_kodu"], "CARI_ADI": c["cari_adi"],
+            "MUHASEBE_CARI_TURU": "TEDARIKCI", "BLOKE": "H", "KAYIT_DURUMU": "A",
+            "KREDILI_ISLEM": "H", "EMAIL": c["email"], "VERGI_DAIRESI": "Merkez",
+            "VERGI_NO": str(1_000_000_000 + c["cari_no"]),
         })
     return rows
 
@@ -536,6 +555,57 @@ def gen_alsadeta_rows() -> list[dict]:
     return rows
 
 
+# Sevkiyatlar: eski frontend mock'undaki (mocks/portalData.ts -> shipments) değerlerle
+# birebir aynı — bkz. netsim-dev/README.md'deki aynı yaklaşım (Faturalar/Finans).
+# STOK_ISLEMA_NO'nun ALISSATIS_NO'su (order_no), DOCUMENTS listesindeki ilgili SIPARIS
+# kaydına işaret eder (self-join ile Siparişlerim'in BELGE_NO'sunu çözmek için).
+# ⚠️ VARSAYIM: ISLEM_KODU='SEVKIYAT' — gerçek Netsim'de STOKASIL'in hangi ISLEM_KODU
+# değeriyle "müşteriye sevkiyat" hareketini işaretlediği doğrulanmadı (STOKASIL genel bir
+# stok hareket başlığı — üretim, transfer, sayım gibi başka hareket türlerini de tutuyor
+# olabilir). KARGO_REFERANS_NO, TAKIP_NO yerine kargo takip numarası için kullanıldı
+# (TAKIP_NO'nun ALSAASIL'de de var olan genel bir dahili takip alanı olduğu, kargo takip
+# no'sundan farklı olabileceği düşünüldü — bu da doğrulanmadı).
+# CIKIS_STOK_YERI_NO = 1 (İstanbul Merkez Depo) — mock'taki "Netsim İstanbul Merkez Depo"
+# origin'iyle tutarlı. "Müşteri Aracı" (taşıyıcısız/kendi aracı) durumu için
+# SEVK_NAKLIYECI_FIRMA_NO NULL bırakıldı — CARIKART'ta bu anlama gelen ayrı bir alan/kayıt
+# yok, backend/frontend bunu "—" olarak gösteriyor (mock'taki "Müşteri Aracı" etiketi
+# taşınmadı, gerçek bir kaynağı yoktu).
+SHIPMENTS = [
+    {"no": 1, "belge_no": "SVK-2026-0088", "order_no": 4, "cari_no": 1001,
+     "tarih": "2026-09-08 13:40:00", "durum": "Yolda", "durum_tarihi": "2026-09-08 13:40:00",
+     "kargo_referans_no": "NTS2609080088", "arac_plaka": "34 NTS 088", "arac_sofor": "Murat Demir",
+     "tasiyici_no": TASIYICI_CARI_NO},
+    {"no": 2, "belge_no": "SVK-2026-0081", "order_no": 5, "cari_no": 1001,
+     "tarih": "2026-09-04 09:10:00", "durum": "Teslim Edildi", "durum_tarihi": "2026-09-04 14:28:00",
+     "kargo_referans_no": "NTS2609040081", "arac_plaka": "34 BAY 142", "arac_sofor": "Ahmet Kaya",
+     "tasiyici_no": None},
+    {"no": 3, "belge_no": "SVK-2026-0094", "order_no": 6, "cari_no": 1002,
+     "tarih": "2026-09-09 11:00:00", "durum": "Hazırlanıyor", "durum_tarihi": "2026-09-09 11:00:00",
+     "kargo_referans_no": "NTS2609090094", "arac_plaka": None, "arac_sofor": None,
+     "tasiyici_no": TASIYICI_CARI_NO},
+]
+
+
+def gen_stokasil_rows() -> list[dict]:
+    rows = []
+    for s in SHIPMENTS:
+        row = {
+            "STOK_ISLEMA_NO": s["no"], "ISLEM_KODU": "SEVKIYAT", "ISLEM_ADI": "Satış Sevkiyatı",
+            "TARIH": s["tarih"], "ALISSATIS_NO": s["order_no"], "CARI_NO": s["cari_no"],
+            "CIKIS_STOK_YERI_NO": 1, "DURUM": s["durum"], "DURUM_TARIHI": s["durum_tarihi"],
+            "BELGE_NO": s["belge_no"], "KARGO_REFERANS_NO": s["kargo_referans_no"],
+            "KAYIT_DURUMU": "A",
+        }
+        if s["arac_plaka"]:
+            row["ARAC_PLAKA"] = s["arac_plaka"]
+        if s["arac_sofor"]:
+            row["ARAC_SOFOR"] = s["arac_sofor"]
+        if s["tasiyici_no"]:
+            row["SEVK_NAKLIYECI_FIRMA_NO"] = s["tasiyici_no"]
+        rows.append(row)
+    return rows
+
+
 def generate() -> str:
     objects = parse_objects(SCHEMA_DOC, set(TABLES_NEEDED))
     missing = set(TABLES_NEEDED) - set(objects)
@@ -563,6 +633,7 @@ def generate() -> str:
     parts.append(render_table_rows(objects["NS_FIYADETA"], gen_fiyadeta_rows(), "bayi başına ürün fiyatı"))
     parts.append(render_table_rows(objects["NS_ALSAASIL"], gen_alsaasil_rows(), "teklif/sipariş/fatura başlıkları"))
     parts.append(render_table_rows(objects["NS_ALSADETA"], gen_alsadeta_rows(), "teklif/sipariş/fatura satırları"))
+    parts.append(render_table_rows(objects["NS_STOKASIL"], gen_stokasil_rows(), f"{len(SHIPMENTS)} sevkiyat"))
 
     return "\n".join(parts)
 

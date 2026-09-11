@@ -23,7 +23,7 @@ export function CheckoutPage() {
     return sum + unitPrice * line.quantity;
   }, 0);
   const mutation = useMutation({
-    mutationFn: () => portalService.createOrder(accountId, { deliveryAddress, paymentMethod, note: `${shippingMethod} — ${note}` }),
+    mutationFn: () => portalService.createOrder(accountId, { deliveryAddress, paymentMethod, shippingMethod, note }),
     onSuccess: async (order) => {
       await queryClient.invalidateQueries({ queryKey: ["orders", accountId] });
       navigate(`/siparisler/${order.id}`, { replace: true });
@@ -56,7 +56,7 @@ export function CheckoutPage() {
             <div className="field"><label htmlFor="payment">Ödeme yöntemi</label><select id="payment" className="select" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}><option>30 Gün Vadeli</option><option>Havale / EFT</option><option>Peşin</option></select></div>
             <div className="field checkout-note"><label htmlFor="note">Sipariş notu</label><textarea id="note" className="textarea" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Siparişinizle ilgili notunuzu yazın" /></div>
           </Card>
-          <div className="notice">Mock doğrulama: ürünlerin güncel fiyatı, satılabilir stoğu ve cari limiti sipariş oluşturulmadan önce kontrol edilir.</div>
+          <div className="notice">Ürünlerin güncel fiyatı, satılabilir stoğu ve cari limiti sipariş oluşturulmadan önce sunucuda kontrol edilir.</div>
           {mutation.error && <div className="notice" role="alert">{mutation.error.message}</div>}
         </div>
         <Card className="cart-summary">

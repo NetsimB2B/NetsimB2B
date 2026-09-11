@@ -94,29 +94,76 @@ S0 / Plan — Ürünleştirme rotası yazıldı (`docs/00-project/URUNLESTIRME_R
       yok — bağlanmadı, UI'da "—" ile zarifçe gösteriliyor (Faturalar'daki `eInvoiceUuid`
       ile aynı yaklaşım). `taxNumber` (`CARIKART.VERGI_NO`) bağlandı. Uçtan uca doğrulandı
       (curl + tarayıcı, iki cari için de tutarlar mock'la birebir eşleşti), 2026-09-11.
+- [x] Sevkiyatlar: artık Netsim'e bağlı — 2026-09-10'daki "mock kalsın" kararı `STOKASIL`'in
+      yalnızca birkaç alanına bakıp verilmişti; bu oturumda tüm 117 alanı tek tek tarandı ve
+      gerçek bir sevkiyat/dispatch kaydı olduğu bulundu: `TAKIP_NO`/`KARGO_REFERANS_NO`
+      (kargo takip no), `SEVK_NAKLIYECI_FIRMA_NO` (taşıyıcı → CARIKART'a referans),
+      `ARAC_PLAKA`/`ARAC_SOFOR` (araç/şoför), `CIKIS_STOK_YERI_NO` (çıkış deposu →
+      STOKYERI), `ALISSATIS_NO` (kaynak sipariş), `DURUM`/`DURUM_TARIHI`. Tablo zaten
+      netsim-dev şemasındaydı (`netsim_ddl_gen.py`) ama hiç seed edilmemişti — DDL değişikliği
+      gerekmedi, yalnızca `netsim_seed_gen.py`'a `gen_stokasil_rows` eklenip eski frontend
+      mock'undaki (`shipments`) değerlerle 3 sevkiyat seed edildi. Taşıyıcı "Netsim Lojistik"
+      de CARIKART'ta yeni bir cari kaydı olarak eklendi (`MUHASEBE_CARI_TURU='TEDARIKCI'`,
+      ⚠️ VARSAYIM — taşıyıcının gerçekten bir cari kaydı olduğu doğrulanmadı, ama
+      `SEVK_NAKLIYECI_FIRMA_NO`'nun CARIKART'a referans vermesi bunu güçlü şekilde
+      işaret ediyor). `/api/shipments` (aktif cari) backend'de çalışıyor.
+      `estimatedDelivery` için ayrı alan yok — bağlı siparişin (Siparişlerim'de zaten
+      bağlı) `VADE_TARIHI`'sine düşülüyor. Çok adımlı olay geçmişi (mock'ta 4-5 adım,
+      "Dağıtım merkezinden çıktı" gibi konum ayrıntılı) için ayrı bir tablo yok — bunun
+      yerine `TARIH`/`DURUM`/`DURUM_TARIHI`'nden türetilen 2-3 adımlı sade bir çizelge
+      kuruluyor (beklenen sadeleşme, kullanıcı onayıyla). `packageCount`/`totalWeight`
+      için doğrulanmış bir alan yok (`KARGO_TOPLAM_DESI` hacimsel bir birim, kg değil) —
+      yanlış etiketlemektense hiç taşınmadı, `Shipment` tipinden ve UI'dan kaldırıldı
+      (`Product.featured`/`eInvoiceUuid` ile aynı gerekçe). ⚠️ VARSAYIM:
+      `ISLEM_KODU='SEVKIYAT'` — STOKASIL genel bir stok hareket başlığı (üretim/transfer/
+      sayım da tutabilir), müşteri sevkiyatını işaretleyen gerçek kod değeri doğrulanmadı.
+      "Müşteri Aracı" (taşıyıcısız) durumu için `SEVK_NAKLIYECI_FIRMA_NO` NULL bırakıldı,
+      mock'taki bu etiket taşınmadı (gerçek kaynağı yoktu) — UI'da "—" gösteriliyor.
+      `docs/04-data/NETSIM_TABLO_HARİTASI.md`'ye eklendi.
+- [x] Checkout: artık gerçekten ALSAASIL/ALSADETA'ya yazıyor — önceki modüllerden farklı
+      olarak bu bir **yazma** akışı, kullanıcıyla kapsam netleştirildi (2026-09-11): sipariş
+      kaydı gerçek yazılıyor ama yan etkiler (STOKKADE stok düşümü, CARIKALI kredi riski
+      güncellemesi) simüle EDİLMİYOR — gerçek Netsim'in bunları sipariş anında nasıl (hatta
+      güncelliyor mu) etkilediği doğrulanmadı, bilinçli olarak dokunulmuyor. Backend
+      `POST /api/orders` (`IOrderWriteService`/`NetsimOrderWriteService`) sepeti
+      (`B2B_CART_LINES`, client'tan tekrar gönderilmiyor — manipülasyon riski olmasın diye)
+      sunucu tarafında okuyor, her satırın güncel fiyat/stoğunu (`IProductReadService`) ve
+      cari kredi limitini (`IFinanceReadService`) doğruluyor, tek bir DB transaction'ında
+      ALSAASIL (`ISLEM_KODU='SIPARIS'`) + ALSADETA satırlarını yazıyor, başarılı olursa
+      sepeti temizliyor. `ALISSATIS_NO`/`ALISSATIS_DETAY_NO` için `MAX(...)+1` kullanıldı
+      (gerçek Netsim muhtemelen bir GENERATOR/trigger kullanıyor — kaynak şema dökümünde DDL
+      yok, doğrulanamadı; tek kullanıcılı dev ortamı için yeterli, idempotency/race-condition
+      production'a taşınmadan çözülmeli, zaten "Blocked by Netsim API" altında). Doğrulama
+      hataları (boş sepet/yetersiz stok/limit aşımı) `OrderCreationException` ile 400 olarak
+      dönüyor — bu arada `httpClient.ts`'in hata gövdesini (`{message: "..."}`) çıkarmadığı,
+      ham JSON'ı gösterdiği fark edildi ve düzeltildi (Checkout'a özel değil, genel bir
+      iyileştirme). `company-context/store.ts`'teki artık gereksiz local `orders`/
+      `createOrder` state'i kaldırıldı — siparişler artık tamamen sunucudan geliyor.
+      `salesRepresentative` (mock'ta sabit "Selin Yılmaz"), gerçek bir atama mantığı
+      olmadığından uydurulmadı, NULL bırakıldı. Uçtan uca doğrulandı (curl: boş sepet →
+      400, stoksuz ürün → 400, geçerli sipariş → gerçekten ALSAASIL/ALSADETA'ya yazıldığı
+      + STOKKADE/CARIKALI'nın değişmediği SQL ile teyit edildi; tarayıcıda gerçek bir sipariş
+      uçtan uca tamamlandı, sepet boşaldı, Siparişlerim'de doğru göründü), 2026-09-11.
 
 ## In Progress
 - [ ] FAZ B — Identity + cookie auth + membership
 
 ## Blocked by Netsim API
 - [ ] HttpNetsimProvider (gerçek OpenAPI / endpoint dokümanı)
-- [ ] ValidateOrder / CreateOrder idempotency production proof
+- [ ] CreateOrder idempotency production proof — mock ortamda `MAX(ALISSATIS_NO)+1` ile
+      yazılıyor (bkz. Completed → Checkout), üretimde eşzamanlı istekler ve tekrar
+      denemeler için gerçek bir mekanizma (generator/idempotency key) doğrulanmalı
+- [ ] Sipariş yazmanın STOKKADE/CARIKALI üzerindeki gerçek yan etkileri — Checkout şu an
+      bilinçli olarak bunlara dokunmuyor (bkz. Completed), gerçek Netsim davranışı
+      doğrulanınca yeniden değerlendirilmeli
 - [ ] Batch price / sellable inventory real endpoints
 - [ ] Invoice PDF / e-fatura document
 - [ ] Quote → Order ERP bağlantısı ("Kabul Edildi" durumu, bkz. Known TODO) — liste/detay
       okuma kısmı artık bağlı, yalnızca Sipariş'e dönüşüm izleme kısmı blocked
-- [ ] Sevkiyatlar (Shipments): `STOKASIL`/`STOKISLM` alan bazlı iş anlamı doğrulanmadı
-      (bkz. `NETSIM_TABLO_HARİTASI.md` ve `NETSIM_ENTEGRASYON_MİMARİSİ.md` → Open Questions)
-      ve netsim-dev'de seed edilmedi (tamamen boş) — Teklifler/Siparişler'de yapılan
-      "gerçek-ama-boş kolonu doldur" yaklaşımı burada uygulanamaz, çünkü kolonların
-      *anlamı* da belirsiz. Taşıyıcı/takip no/araç-şoför/çok adımlı sevkiyat zaman
-      çizelgesi gibi UI alanlarının karşılığı olan doğrulanmış bir kolon yok. Kullanıcıyla
-      görüşüldü (2026-09-10): şimdilik mock bırakılması onaylandı; ilerlemek için ya gerçek
-      şema doğrulaması ya da Siparişler verisinden türetilen daha sade bir görünüm gerekir.
 
 ## Known TODO
-- Ürünler, Sepetim, Favoriler, Hızlı Sipariş, Teklifler, Siparişlerim, Faturalar ve
-  Finans/Cari Hesap dışındaki modüller (checkout/sevkiyat) hâlâ `portalService` mock
+- Tüm ana modüller artık veritabanına bağlı (Duyurular/Bildirimler/Destek Merkezi gibi
+  gerçek bir veri kaynağı hiç tanımlanmamış statik sayfalar hariç)
 - Teklif "Kabul Edildi" durumu ve Teklif→Sipariş dönüşümünün ERP tarafında izlenmesi
   Siparişler modülü bağlanmadan tamamlanamaz (bkz. `docs/04-data/NETSIM_TABLO_HARİTASI.md`
   → ALSAASIL "Quote ERP ISLEM_KODU mapping" — gerçek Netsim'de TEKLIF/SIPARIS/FATURA kod
@@ -128,9 +175,7 @@ S0 / Plan — Ürünleştirme rotası yazıldı (`docs/00-project/URUNLESTIRME_R
   varsayılıyor, kategori sayfalama/backend gerçek sayfalama henüz yok (küçük katalog için
   tek istekte tüm sonuç alınıp frontend'de sayfalanıyor)
 - Sepetim sunucu senkronizasyonu optimistic — istek başarısız olursa rollback yok, yalnızca
-  konsola loglanıyor (bkz. `company-context/store.ts`); checkout/sipariş oluşturma hâlâ
-  `portalService.createOrder` üzerinden mock sipariş kaydı üretiyor (gerçek sipariş yazma
-  Netsim'e karşı henüz yapılmıyor)
+  konsola loglanıyor (bkz. `company-context/store.ts`)
 - B2B outbox yok (identity + cart + favoriler artık Firebird B2B_* tablolarına bağlı)
 - Admin Lite yok
 - E2E / tenant leak / double-order testleri yok
@@ -153,3 +198,19 @@ FAZ A tamamla (contract matrix + needs-netsim-api) → FAZ B1 PostgreSQL + Ident
   netleme sorgusu hatası curl testinde yakalanıp düzeltildi, bkz. NetsimFinanceReadService
   yorumları), tarayıcıda Finans sayfası + Dashboard kartları + firma değiştirme + Excel
   export iki cari için de hatasız çalıştı, konsolda hata yok
+- Sevkiyatlar uçtan uca doğrulandı (2026-09-11): `dotnet build` + `dotnet test` (backend,
+  0 hata), `tsc --noEmit`/`npm run lint`/`vitest run` (frontend, temiz), `GET /api/shipments`
+  curl ile iki cari için de test edildi (bir gerçek hata curl testinde yakalanıp
+  düzeltildi: `COALESCE(ALSAASIL.VADE_TARIHI, STOKASIL.TARIH)` DATE/TIMESTAMP tip
+  uyuşmazlığı veriyordu, CAST eklendi), tarayıcıda Sevkiyatlar
+  liste + detay sayfaları ("Yolda" ve "Teslim Edildi" durumları, taşıyıcısız "—" durumu
+  dahil) ve Dashboard'daki aktif sevkiyat kartı hatasız çalıştı, konsolda hata yok
+- Checkout uçtan uca doğrulandı (2026-09-11): `dotnet build` + `dotnet test` (backend,
+  0 hata), `tsc --noEmit`/`npm run lint`/`vitest run` (frontend, temiz). curl ile üç
+  senaryo: boş sepet → 400 "Sepetiniz boş.", stoksuz ürün (VLV-050) → 400 "...yeterli
+  stok yok.", geçerli sipariş → 200 + gerçek `ALSAASIL`/`ALSADETA` satırı (SQL ile
+  doğrudan teyit edildi) + sepetin gerçekten boşaldığı (`B2B_CART_LINES` COUNT=0) +
+  `STOKKADE`/`CARIKALI`'nın değişmediği (kararlaştırılan kapsam) doğrulandı. Tarayıcıda
+  gerçek bir ürün sepete eklenip Checkout'tan sipariş tamamlandı, `/siparisler/{id}`'ye
+  yönlendirdi, sipariş detayı (kalemler/toplamlar/not) doğru göründü, sepet UI'da da
+  boşaldı, konsolda hata yok

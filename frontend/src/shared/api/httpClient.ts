@@ -13,7 +13,20 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
     credentials: "include",
   });
 
-  if (!response.ok) throw new ApiError(response.status, await response.text());
+  if (!response.ok) {
+    const body = await response.text();
+    // Backend doğrulama hataları { message: "..." } şeklinde JSON döner (bkz.
+    // OrderEndpoints/CartEndpoints → Results.BadRequest); okunabilir mesajı çıkar,
+    // JSON değilse (örn. framework'ün ürettiği ham 500 body'si) olduğu gibi kullan.
+    let message = body;
+    try {
+      const parsed = JSON.parse(body);
+      if (typeof parsed?.message === "string") message = parsed.message;
+    } catch {
+      // JSON değil, body olduğu gibi kullanılır.
+    }
+    throw new ApiError(response.status, message);
+  }
   if (response.status === 204) return undefined as T;
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;

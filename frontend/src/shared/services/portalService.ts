@@ -1,10 +1,10 @@
-import { shipments } from "@/mocks/portalData";
 import { useCompanyContext } from "@/features/company-context/store";
 import { fetchAccounts, fetchTransactions, type ApiAccount, type ApiCariTransaction } from "@/shared/api/financeApi";
 import { fetchInvoices, type ApiInvoice } from "@/shared/api/invoicesApi";
-import { fetchOrders, type ApiOrder } from "@/shared/api/ordersApi";
+import { createOrder as postOrder, fetchOrders, type ApiOrder } from "@/shared/api/ordersApi";
 import { fetchProduct, fetchProducts, type ApiProduct } from "@/shared/api/productsApi";
 import { fetchQuotes, type ApiQuote } from "@/shared/api/quotesApi";
+import { fetchShipments, type ApiShipment } from "@/shared/api/shipmentsApi";
 import { ApiError } from "@/shared/api/httpClient";
 import type { Account, AccountTransaction, Invoice, Order, Product, Quote, Shipment } from "@/shared/types/portal";
 
@@ -128,6 +128,30 @@ function toInvoice(item: ApiInvoice): Invoice {
   };
 }
 
+function toShipment(item: ApiShipment): Shipment {
+  return {
+    id: item.id,
+    accountId: item.cariNo,
+    orderId: item.orderId ?? undefined,
+    date: item.date,
+    status: item.status,
+    carrier: item.carrier ?? undefined,
+    trackingNo: item.trackingNo ?? undefined,
+    estimatedDelivery: item.estimatedDelivery,
+    deliveredAt: item.deliveredAt ?? undefined,
+    origin: item.origin ?? undefined,
+    destination: item.destination ?? undefined,
+    vehiclePlate: item.vehiclePlate ?? undefined,
+    driverName: item.driverName ?? undefined,
+    events: item.events.map((event) => ({
+      date: event.date,
+      title: event.title,
+      location: event.location ?? undefined,
+      completed: event.completed,
+    })),
+  };
+}
+
 function toProduct(item: ApiProduct): Product {
   const category = item.category ?? "Diğer";
   return {
@@ -155,10 +179,9 @@ export type ProductQuery = {
 export type CheckoutInput = {
   deliveryAddress: string;
   paymentMethod: string;
+  shippingMethod?: string;
   note?: string;
 };
-
-const delay = (ms = 260) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const portalService = {
   async getAccounts(): Promise<Account[]> {
@@ -188,49 +211,18 @@ export const portalService = {
 
   async getOrders(accountId: number): Promise<Order[]> {
     const items = await fetchOrders(accountId);
-    const localOrders = useCompanyContext.getState().orders.filter((order) => order.accountId === accountId);
-    return [...localOrders, ...items.map(toOrder)];
+    return items.map(toOrder);
   },
 
   async createOrder(accountId: number, input: CheckoutInput): Promise<Order> {
-    await delay(450);
-    const state = useCompanyContext.getState();
-    const lines = state.cartByAccount[accountId] ?? [];
-    if (!lines.length) throw new Error("Sepetiniz boş.");
-
-    const pricedProducts = await this.getProducts(accountId);
-    const total = lines.reduce((sum, line) => {
-      const product = pricedProducts.find((item) => item.id === line.productId);
-      if (!product || product.stock < line.quantity) throw new Error("Sepette stok doğrulaması gereken ürün var.");
-      const unitPrice = line.unitPrice ?? product.price;
-      return sum + unitPrice * line.quantity;
-    }, 0);
-    const currentAccounts = await this.getAccounts();
-    const account = currentAccounts.find((item) => item.id === accountId);
-    if (!account || total > account.availableCredit) {
-      throw new Error("Kullanılabilir cari limit bu sipariş için yeterli değil.");
-    }
-    const quoteId = lines.find((line) => line.quoteId)?.quoteId;
-
-    const order: Order = {
-      id: `B2B-2026-${String(3001 + state.orders.length).padStart(4, "0")}`,
-      accountId,
-      createdAt: new Date().toISOString(),
-      status: "Alındı",
-      lines,
-      total,
-      customerOrderNo: `WEB-${Date.now().toString().slice(-6)}`,
-      expectedDeliveryDate: new Date(Date.now() + 3 * 86_400_000).toISOString(),
-      salesRepresentative: "Selin Yılmaz",
-      shippingMethod: "Netsim Lojistik",
-      ...(quoteId ? { quoteId } : {}),
+    const item = await postOrder(accountId, {
       deliveryAddress: input.deliveryAddress,
       paymentMethod: input.paymentMethod,
+      shippingMethod: input.shippingMethod,
       note: input.note,
-    };
-    state.createOrder(order);
-    state.clearCart(accountId);
-    return order;
+    });
+    useCompanyContext.getState().clearCart(accountId);
+    return toOrder(item);
   },
 
   async getQuotes(accountId: number): Promise<Quote[]> {
@@ -239,8 +231,8 @@ export const portalService = {
   },
 
   async getShipments(accountId: number): Promise<Shipment[]> {
-    await delay();
-    return shipments.filter((shipment) => shipment.accountId === accountId);
+    const items = await fetchShipments(accountId);
+    return items.map(toShipment);
   },
 
   async getInvoices(accountId: number): Promise<Invoice[]> {

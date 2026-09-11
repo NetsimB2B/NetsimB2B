@@ -96,23 +96,21 @@ export type Quote = {
 export type Shipment = {
   id: string;
   accountId: number;
-  orderId: string;
+  orderId?: string;
   date: string;
   status: "Hazırlanıyor" | "Yolda" | "Teslim Edildi";
-  carrier: string;
-  trackingNo: string;
+  carrier?: string;
+  trackingNo?: string;
   estimatedDelivery: string;
   deliveredAt?: string;
-  origin: string;
-  destination: string;
-  packageCount: number;
-  totalWeight: number;
+  origin?: string;
+  destination?: string;
   vehiclePlate?: string;
   driverName?: string;
   events: Array<{
     date: string;
     title: string;
-    location: string;
+    location?: string;
     completed: boolean;
   }>;
 };

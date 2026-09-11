@@ -2,12 +2,11 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { addCartLine, clearServerCart, deleteCartLine, fetchCartLines, updateCartLineQuantity } from "@/shared/api/cartApi";
 import { addFavorite, fetchFavorites, removeFavorite } from "@/shared/api/favoritesApi";
-import type { CartLine, Order } from "@/shared/types/portal";
+import type { CartLine } from "@/shared/types/portal";
 
 type CompanyContextState = {
   activeCariNo: number;
   cartByAccount: Record<number, CartLine[]>;
-  orders: Order[];
   favorites: number[];
   notificationsRead: boolean;
   setActiveCariNo: (cariNo: number) => void;
@@ -16,7 +15,6 @@ type CompanyContextState = {
   updateCartLine: (productId: number, quantity: number) => void;
   removeCartLine: (productId: number) => void;
   clearCart: (accountId?: number) => void;
-  createOrder: (order: Order) => void;
   loadFavorites: () => Promise<void>;
   toggleFavorite: (productId: number) => void;
   markNotificationsRead: () => void;
@@ -32,7 +30,6 @@ export const useCompanyContext = create<CompanyContextState>()(
     (set, get) => ({
       activeCariNo: 1001,
       cartByAccount: {},
-      orders: [],
       favorites: [],
       notificationsRead: false,
       setActiveCariNo: (activeCariNo) => set({ activeCariNo }),
@@ -101,7 +98,6 @@ export const useCompanyContext = create<CompanyContextState>()(
         void clearServerCart(cariNo)
           .catch((error) => console.error("Sepet temizlenirken sunucu hatası", error));
       },
-      createOrder: (order) => set((state) => ({ orders: [order, ...state.orders] })),
       loadFavorites: async () => {
         try {
           const favorites = await fetchFavorites();
@@ -129,7 +125,6 @@ export const useCompanyContext = create<CompanyContextState>()(
       // yerelde saklanmazlar, aksi halde farklı cihaz/sekmelerde bayat veri görünebilir.
       partialize: (state) => ({
         activeCariNo: state.activeCariNo,
-        orders: state.orders,
         notificationsRead: state.notificationsRead,
       }),
     },

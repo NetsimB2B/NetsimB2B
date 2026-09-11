@@ -139,7 +139,7 @@ export function DashboardPage() {
                 <li key={shipment.id}>
                   <Link to={`/sevkiyatlar/${shipment.id}`}>
                     <strong>{shipment.id}</strong>
-                    <small>{shipment.status} · {shipment.carrier}</small>
+                    <small>{shipment.status} · {shipment.carrier ?? "—"}</small>
                     <Badge tone={shipment.status === "Yolda" ? "warning" : "neutral"}>{shipment.status}</Badge>
                   </Link>
                 </li>

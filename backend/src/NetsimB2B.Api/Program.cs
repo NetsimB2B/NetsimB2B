@@ -63,6 +63,7 @@ app.MapQuoteEndpoints();
 app.MapOrderEndpoints();
 app.MapInvoiceEndpoints();
 app.MapFinanceEndpoints();
+app.MapShipmentEndpoints();
 
 app.Run();
 

@@ -25,3 +25,20 @@ export type ApiOrder = {
 export function fetchOrders(cariNo: number): Promise<ApiOrder[]> {
   return apiRequest<ApiOrder[]>("/orders", { headers: { "X-Cari-No": String(cariNo) } });
 }
+
+export type CreateOrderPayload = {
+  deliveryAddress?: string;
+  paymentMethod?: string;
+  shippingMethod?: string;
+  note?: string;
+};
+
+// Sepeti (B2B_CARTS) sunucu tarafında okuyup doğrulayarak gerçek bir SIPARIS yazar —
+// satır/miktar/fiyat burada gönderilmez, backend zaten sunucudaki sepeti kullanır.
+export function createOrder(cariNo: number, payload: CreateOrderPayload): Promise<ApiOrder> {
+  return apiRequest<ApiOrder>("/orders", {
+    method: "POST",
+    headers: { "X-Cari-No": String(cariNo) },
+    body: JSON.stringify(payload),
+  });
+}
