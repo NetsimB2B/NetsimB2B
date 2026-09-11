@@ -1,14 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useCompanyContext } from "@/features/company-context/store";
 import { portalService, type ProductQuery } from "@/shared/services/portalService";
 import { Badge, Card, EmptyState, ErrorState, LoadingState } from "@/shared/components/Ui";
 import { formatMoney } from "@/shared/lib/format";
+import type { Product } from "@/shared/types/portal";
 import "./products.css";
 
 function stockTone(stock: number) {
   return stock > 10 ? "success" : stock > 0 ? "warning" : "danger";
+}
+
+function stockDotTone(stock: number) {
+  return stock > 10 ? "ok" : "warn";
 }
 
 function ProductArtwork({ image, category }: { image: string; category: string }) {
@@ -21,143 +26,402 @@ function ProductArtwork({ image, category }: { image: string; category: string }
   );
 }
 
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const handler = () => setMatches(mql.matches);
+    handler();
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [query]);
+  return matches;
+}
+
+function countBy(products: Product[], key: "category" | "brand") {
+  const counts = new Map<string, number>();
+  products.forEach((product) => counts.set(product[key], (counts.get(product[key]) ?? 0) + 1));
+  return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0], "tr"));
+}
+
 export function ProductsPage() {
   const accountId = useCompanyContext((state) => state.activeCariNo);
   const addToCart = useCompanyContext((state) => state.addToCart);
   const favorites = useCompanyContext((state) => state.favorites);
-  const toggleFavorite = useCompanyContext((state) => state.toggleFavorite);
-  const [query, setQuery] = useState<ProductQuery>({ sort: "name" });
+
+  const [search, setSearch] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [sort, setSort] = useState<NonNullable<ProductQuery["sort"]>>("name");
+  const [view, setView] = useState<"list" | "card">("card");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [addedProductId, setAddedProductId] = useState<number | null>(null);
-  const { data = [], isLoading, isError } = useQuery({
-    queryKey: ["products", accountId, query],
-    queryFn: () => portalService.getProducts(accountId, query),
-  });
-  const { data: allProducts = [] } = useQuery({
-    queryKey: ["products", accountId, "catalog-counts"],
+  const [isExporting, setIsExporting] = useState(false);
+
+  const isNarrow = useMediaQuery("(max-width: 640px)");
+  const effectiveView = isNarrow ? "card" : view;
+
+  const { data: products = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["products", accountId, "catalog"],
     queryFn: () => portalService.getProducts(accountId),
   });
-  const brands = useMemo(() => [...new Set(allProducts.map((product) => product.brand))].sort((a, b) => a.localeCompare(b, "tr")), [allProducts]);
-  const categories = useMemo(() => [...new Set(allProducts.map((product) => product.category))].sort((a, b) => a.localeCompare(b, "tr")), [allProducts]);
-  const pageSize = 8;
-  const visibleProducts = data.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
-  const hasFilters = Boolean(query.search || query.category || query.brand || query.inStock);
 
-  function updateQuery(next: Partial<ProductQuery>) {
-    setQuery((current) => ({ ...current, ...next }));
+  const categoryOptions = useMemo(() => countBy(products, "category"), [products]);
+  const brandOptions = useMemo(() => countBy(products, "brand"), [products]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase("tr-TR");
+    const list = products.filter((product) => {
+      if (term && !`${product.name} ${product.code} ${product.brand}`.toLocaleLowerCase("tr-TR").includes(term)) return false;
+      if (selectedCategories.length && !selectedCategories.includes(product.category)) return false;
+      if (selectedBrands.length && !selectedBrands.includes(product.brand)) return false;
+      if (inStockOnly && product.stock <= 0) return false;
+      if (favoritesOnly && !favorites.includes(product.id)) return false;
+      return true;
+    });
+    return [...list].sort((a, b) => {
+      if (sort === "price-asc") return a.price - b.price;
+      if (sort === "price-desc") return b.price - a.price;
+      return a.name.localeCompare(b.name, "tr");
+    });
+  }, [products, search, selectedCategories, selectedBrands, inStockOnly, favoritesOnly, favorites, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const visible = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const hasFilters = Boolean(search || selectedCategories.length || selectedBrands.length || inStockOnly || favoritesOnly);
+
+  function resetPage() {
     setPage(1);
   }
 
-  function handleAddToCart(productId: number) {
-    addToCart(productId);
-    setAddedProductId(productId);
-    window.setTimeout(() => setAddedProductId((current) => current === productId ? null : current), 1400);
+  function toggleCategory(category: string) {
+    setSelectedCategories((current) => current.includes(category) ? current.filter((item) => item !== category) : [...current, category]);
+    resetPage();
+  }
+
+  function toggleBrand(brand: string) {
+    setSelectedBrands((current) => current.includes(brand) ? current.filter((item) => item !== brand) : [...current, brand]);
+    resetPage();
   }
 
   function clearFilters() {
-    setQuery({ sort: query.sort ?? "name" });
-    setPage(1);
+    setSearch("");
+    setSelectedCategories([]);
+    setSelectedBrands([]);
+    setInStockOnly(false);
+    setFavoritesOnly(false);
+    resetPage();
   }
+
+  function quantityFor(product: Product) {
+    return quantities[product.id] ?? 1;
+  }
+
+  function changeQuantity(product: Product, delta: number) {
+    const max = Math.max(1, product.stock);
+    setQuantities((current) => ({ ...current, [product.id]: Math.min(max, Math.max(1, quantityFor(product) + delta)) }));
+  }
+
+  function setQuantityDirect(product: Product, value: number) {
+    const max = Math.max(1, product.stock);
+    setQuantities((current) => ({ ...current, [product.id]: Math.min(max, Math.max(1, value || 1)) }));
+  }
+
+  function handleAdd(product: Product) {
+    addToCart(product.id, quantityFor(product));
+    setAddedProductId(product.id);
+    window.setTimeout(() => setAddedProductId((current) => current === product.id ? null : current), 1200);
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  function toggleSelectAllVisible() {
+    setSelectedIds((current) => {
+      const allSelected = visible.length > 0 && visible.every((product) => current.includes(product.id));
+      if (allSelected) return current.filter((id) => !visible.some((product) => product.id === id));
+      return [...new Set([...current, ...visible.map((product) => product.id)])];
+    });
+  }
+
+  function addSelectedToCart() {
+    selectedIds.forEach((id) => {
+      const product = products.find((item) => item.id === id);
+      if (product && product.stock > 0) addToCart(id, quantityFor(product));
+    });
+    setSelectedIds([]);
+  }
+
+  async function exportCatalog() {
+    setIsExporting(true);
+    try {
+      const ExcelJS = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Ürünler");
+      worksheet.columns = [
+        { header: "Stok Kodu", key: "code", width: 16 },
+        { header: "Ürün Adı", key: "name", width: 42 },
+        { header: "Marka", key: "brand", width: 18 },
+        { header: "Kategori", key: "category", width: 18 },
+        { header: "Birim", key: "unit", width: 10 },
+        { header: "Stok", key: "stock", width: 10 },
+        { header: "Birim Fiyat", key: "price", width: 14 },
+      ];
+      worksheet.getRow(1).font = { bold: true };
+      filtered.forEach((product) => {
+        worksheet.addRow({
+          code: product.code,
+          name: product.name,
+          brand: product.brand,
+          category: product.category,
+          unit: product.unit,
+          stock: product.stock,
+          price: product.price,
+        });
+      });
+      worksheet.getColumn("price").numFmt = '₺#,##0.00';
+      const buffer = await workbook.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer as BlobPart], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "netsim-urunler.xlsx";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Ürün listesi dışa aktarılamadı", error);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  function pageNumbers() {
+    const end = Math.min(totalPages, Math.max(4, safePage + 2));
+    const start = Math.max(1, end - 4);
+    const numbers: number[] = [];
+    for (let n = start; n <= end; n += 1) numbers.push(n);
+    return numbers;
+  }
+
+  const allVisibleSelected = visible.length > 0 && visible.every((product) => selectedIds.includes(product.id));
 
   return (
     <div className="page products-page">
-      <header className="products-header">
+      <header className="products-topbar">
         <div>
-          <span className="products-eyebrow">B2B Ürün Kataloğu</span>
+          <nav className="products-crumb" aria-label="Sayfa yolu"><Link to="/dashboard">Ana Sayfa</Link><span>/</span><span>Ürünler</span></nav>
           <h1>Ürünler</h1>
-          <p>Firmanıza özel fiyatlar, güncel stoklar ve teknik ürün bilgileri.</p>
         </div>
-        <Link className="button products-quote-button" to="/teklifler">◇ Tekliflerimi Gör</Link>
+        <div className="products-topbar-actions">
+          <button className="button" type="button" disabled={isExporting || !filtered.length} onClick={exportCatalog}>{isExporting ? "Aktarılıyor…" : "Excel'e Aktar"}</button>
+          <Link className="button" to="/hizli-siparis">Hızlı Sipariş</Link>
+        </div>
       </header>
 
-      <Card className="product-toolbar">
-        <label className="product-search">
-          <span aria-hidden="true">⌕</span>
-          <input aria-label="Ürün ara" placeholder="Ürün adı, stok kodu veya marka ara..." value={query.search ?? ""} onChange={(event) => updateQuery({ search: event.target.value })} />
-        </label>
-        <select className="select" aria-label="Kategori" value={query.category ?? ""} onChange={(event) => updateQuery({ category: event.target.value || undefined })}>
-          <option value="">Tüm kategoriler</option>
-          {categories.map((category) => <option key={category}>{category}</option>)}
-        </select>
-        <select className="select" aria-label="Marka" value={query.brand ?? ""} onChange={(event) => updateQuery({ brand: event.target.value || undefined })}>
-          <option value="">Tüm markalar</option>
-          {brands.map((brand) => <option key={brand}>{brand}</option>)}
-        </select>
-        <select className="select" aria-label="Sıralama" value={query.sort} onChange={(event) => updateQuery({ sort: event.target.value as ProductQuery["sort"] })}>
-          <option value="name">Ürün adına göre</option>
-          <option value="price-asc">Fiyat: Artan</option>
-          <option value="price-desc">Fiyat: Azalan</option>
-        </select>
-        <label className="stock-filter"><input type="checkbox" checked={query.inStock ?? false} onChange={(event) => updateQuery({ inStock: event.target.checked })} /><span>Yalnızca stoktakiler</span></label>
-      </Card>
+      {isLoading && (
+        <div className="product-table-wrap">
+          <div className="product-skeleton" role="status" aria-label="Ürünler yükleniyor">
+            {Array.from({ length: 12 }).map((_, index) => <div className="product-skeleton-row" key={index} />)}
+          </div>
+        </div>
+      )}
 
-      {isLoading && <LoadingState label="Ürünler yükleniyor" />}
-      {isError && <ErrorState />}
+      {isError && (
+        <div className="product-table-wrap">
+          <div className="product-state">
+            <p>Ürünler şu anda yüklenemedi.</p>
+            <button className="text-action" type="button" onClick={() => refetch()}>Tekrar dene</button>
+          </div>
+        </div>
+      )}
 
       {!isLoading && !isError && (
-        <div className="product-catalog-layout">
-          <Card className="product-category-panel">
-            <div className="category-panel-title"><strong>Kategoriler</strong><span>{allProducts.length} ürün</span></div>
-            <button className={!query.category ? "active" : ""} type="button" onClick={() => updateQuery({ category: undefined })}>
-              <span>Tüm Ürünler</span><small>{allProducts.length}</small>
-            </button>
-            {categories.map((category) => (
-              <button className={query.category === category ? "active" : ""} type="button" key={category} onClick={() => updateQuery({ category })}>
-                <span>{category}</span><small>{allProducts.filter((product) => product.category === category).length}</small>
-              </button>
-            ))}
-            <div className="catalog-help">
-              <span aria-hidden="true">?</span>
-              <div><strong>Ürün bulamadınız mı?</strong><Link to="/destek">Destek ekibine sorun</Link></div>
+        <div className="products-layout">
+          <details className="product-filters" open>
+            <summary>Filtreler{hasFilters && <em className="filters-badge" aria-hidden="true" />}</summary>
+
+            <div className="filter-section">
+              <h2>Kategori</h2>
+              {categoryOptions.map(([category, count]) => (
+                <label className="filter-check" key={category}>
+                  <input type="checkbox" checked={selectedCategories.includes(category)} onChange={() => toggleCategory(category)} />
+                  <span>{category}</span><em>{count}</em>
+                </label>
+              ))}
             </div>
-          </Card>
+
+            <div className="filter-section">
+              <h2>Marka</h2>
+              {brandOptions.map(([brand, count]) => (
+                <label className="filter-check" key={brand}>
+                  <input type="checkbox" checked={selectedBrands.includes(brand)} onChange={() => toggleBrand(brand)} />
+                  <span>{brand}</span><em>{count}</em>
+                </label>
+              ))}
+            </div>
+
+            <div className="filter-section">
+              <h2>Durum</h2>
+              <label className="filter-check">
+                <input type="checkbox" checked={inStockOnly} onChange={(event) => { setInStockOnly(event.target.checked); resetPage(); }} />
+                <span>Yalnızca stoktakiler</span>
+              </label>
+              <label className="filter-check">
+                <input type="checkbox" checked={favoritesOnly} onChange={(event) => { setFavoritesOnly(event.target.checked); resetPage(); }} />
+                <span>Favorilerim</span>
+              </label>
+            </div>
+
+            {hasFilters && <button className="text-action filter-clear" type="button" onClick={clearFilters}>Filtreleri temizle</button>}
+          </details>
 
           <section className="product-results" aria-label="Ürün sonuçları">
-            <div className="product-results-header">
-              <div><strong>{data.length} ürün bulundu</strong><span>{query.category ?? "Tüm kategoriler"} · Firmanıza özel fiyatlar</span></div>
-              {hasFilters && <button type="button" onClick={clearFilters}>Filtreleri temizle ×</button>}
+            <div className="products-toolbar">
+              <label className="toolbar-search">
+                <span aria-hidden="true">⌕</span>
+                <input aria-label="Ürün ara" placeholder="Ürün adı, stok kodu veya marka ara..." value={search} onChange={(event) => { setSearch(event.target.value); resetPage(); }} />
+              </label>
+              <select className="select toolbar-sort" aria-label="Sırala" value={sort} onChange={(event) => { setSort(event.target.value as typeof sort); resetPage(); }}>
+                <option value="name">Ürün adına göre</option>
+                <option value="price-asc">Fiyat: Artan</option>
+                <option value="price-desc">Fiyat: Azalan</option>
+              </select>
+              {!isNarrow && (
+                <div className="view-switch" role="group" aria-label="Görünüm">
+                  <button type="button" className={view === "list" ? "active" : ""} onClick={() => setView("list")}>Liste</button>
+                  <button type="button" className={view === "card" ? "active" : ""} onClick={() => setView("card")}>Kart</button>
+                </div>
+              )}
             </div>
 
-            {!visibleProducts.length ? (
-              <Card><EmptyState title="Ürün bulunamadı" description="Arama veya filtre kriterlerinizi değiştirerek tekrar deneyin." /></Card>
+            <div className="products-meta-row">
+              <div className="products-meta-chips">
+                <span className="products-count">{filtered.length} kayıt</span>
+                {search && <button className="filter-chip" type="button" onClick={() => { setSearch(""); resetPage(); }}>“{search}” ×</button>}
+                {selectedCategories.map((category) => <button className="filter-chip" type="button" key={category} onClick={() => toggleCategory(category)}>{category} ×</button>)}
+                {selectedBrands.map((brand) => <button className="filter-chip" type="button" key={brand} onClick={() => toggleBrand(brand)}>{brand} ×</button>)}
+                {inStockOnly && <button className="filter-chip" type="button" onClick={() => { setInStockOnly(false); resetPage(); }}>Stokta ×</button>}
+                {favoritesOnly && <button className="filter-chip" type="button" onClick={() => { setFavoritesOnly(false); resetPage(); }}>Favorilerim ×</button>}
+              </div>
+              <p className="products-price-note">Fiyatlar firmanıza özel net fiyattır, KDV hariç.</p>
+            </div>
+
+            {!visible.length ? (
+              <div className="product-table-wrap">
+                <div className="product-state">
+                  <p>Bu filtrelerle ürün bulunamadı.</p>
+                  {hasFilters && <button className="text-action" type="button" onClick={clearFilters}>Filtreleri temizle</button>}
+                </div>
+              </div>
+            ) : effectiveView === "list" ? (
+              <div className="product-table-wrap">
+                {selectedIds.length > 0 && (
+                  <div className="bulk-bar">
+                    <span>{selectedIds.length} ürün seçildi</span>
+                    <button type="button" onClick={addSelectedToCart}>Seçilenleri sepete ekle</button>
+                    <button type="button" onClick={() => setSelectedIds([])}>Seçimi temizle</button>
+                  </div>
+                )}
+                <table className="product-table">
+                  <thead>
+                    <tr>
+                      <th className="col-select"><input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} aria-label="Sayfadaki tümünü seç" /></th>
+                      <th>Stok Kodu</th>
+                      <th>Ürün</th>
+                      <th className="col-unit">Birim</th>
+                      <th className="col-num">Stok</th>
+                      <th className="col-num">Birim Fiyat</th>
+                      <th className="col-qty">Miktar</th>
+                      <th className="col-action" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map((product) => (
+                      <tr key={product.id}>
+                        <td className="col-select"><input type="checkbox" checked={selectedIds.includes(product.id)} onChange={() => toggleSelect(product.id)} aria-label={`${product.name} satırını seç`} /></td>
+                        <td className="col-code">{product.code}</td>
+                        <td className="col-name">
+                          <Link to={`/urunler/${product.id}`}>{product.name}</Link>
+                          <small>{product.brand}{favorites.includes(product.id) && <em className="fav-mark" aria-label="Favori">★</em>}</small>
+                        </td>
+                        <td className="col-unit">{product.unit}</td>
+                        <td className="col-num">
+                          {product.stock > 0
+                            ? <><i className={`stock-dot tone-${stockDotTone(product.stock)}`} aria-hidden="true" />{product.stock} {product.unit}</>
+                            : <span className="stock-out">Stokta yok</span>}
+                        </td>
+                        <td className="col-num col-price">{formatMoney(product.price)}<small>+ KDV</small></td>
+                        <td className="col-qty">
+                          <div className="qty-stepper">
+                            <button type="button" aria-label="Miktarı azalt" disabled={!product.stock} onClick={() => changeQuantity(product, -1)}>−</button>
+                            <input type="number" min={1} max={Math.max(1, product.stock)} value={quantityFor(product)} disabled={!product.stock} onChange={(event) => setQuantityDirect(product, Number(event.target.value))} aria-label="Miktar" />
+                            <button type="button" aria-label="Miktarı artır" disabled={!product.stock} onClick={() => changeQuantity(product, 1)}>＋</button>
+                          </div>
+                        </td>
+                        <td className="col-action">
+                          <button className="button button-primary" type="button" disabled={!product.stock} onClick={() => handleAdd(product)}>{addedProductId === product.id ? "Eklendi" : "Sepete"}</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <div className="product-grid">
-                {visibleProducts.map((product) => (
-                  <Card className="product-card" key={product.id}>
-                    <button className={`favorite-button ${favorites.includes(product.id) ? "is-favorite" : ""}`} type="button" aria-label={favorites.includes(product.id) ? "Favorilerden çıkar" : "Favoriye ekle"} onClick={() => toggleFavorite(product.id)}>♥</button>
-                    <Link className="product-visual" to={`/urunler/${product.id}`} aria-label={`${product.name} detayını aç`}>
+              <div className="product-card-grid">
+                {visible.map((product) => (
+                  <div className="product-card" key={product.id}>
+                    <Link className="product-card-image" to={`/urunler/${product.id}`} aria-label={`${product.name} detayını aç`}>
                       <ProductArtwork image={product.image} category={product.category} />
+                      {favorites.includes(product.id) && <em className="fav-mark product-card-fav" aria-label="Favori">★</em>}
                     </Link>
-                    <div className="product-card-body">
-                      <div className="product-meta"><span>{product.brand}</span><span>{product.code}</span></div>
-                      <Link className="product-name" to={`/urunler/${product.id}`}>{product.name}</Link>
-                      <div className="product-stock">
-                        <Badge tone={stockTone(product.stock)}>
-                          {product.stock > 0 ? `${product.stock} ${product.unit} stokta` : "Stokta yok"}
-                        </Badge>
-                        <span>Min. 1 {product.unit}</span>
-                      </div>
-                      <div className="product-price"><small>Firmanıza özel fiyat</small><strong>{formatMoney(product.price)}</strong><span>+ KDV</span></div>
-                      <div className="product-buy">
-                        <Link className="product-detail-link" to={`/urunler/${product.id}`}>Detayları Gör</Link>
-                        <button className={`button button-primary ${addedProductId === product.id ? "is-added" : ""}`} type="button" disabled={!product.stock} onClick={() => handleAddToCart(product.id)}>
-                          {addedProductId === product.id ? "✓ Eklendi" : "Sepete Ekle"}
-                        </button>
-                      </div>
+                    <div className="product-card-top">
+                      <span>{product.code}</span>
                     </div>
-                  </Card>
+                    <Link className="product-card-name" to={`/urunler/${product.id}`}>{product.name}</Link>
+                    <span className="product-card-brand">{product.brand}</span>
+                    <div className="product-card-stock">
+                      {product.stock > 0
+                        ? <><i className={`stock-dot tone-${stockDotTone(product.stock)}`} aria-hidden="true" />{product.stock} {product.unit}</>
+                        : <span className="stock-out">Stokta yok</span>}
+                    </div>
+                    <div className="product-card-price">{formatMoney(product.price)}<small>+ KDV</small></div>
+                    <div className="qty-stepper">
+                      <button type="button" aria-label="Miktarı azalt" disabled={!product.stock} onClick={() => changeQuantity(product, -1)}>−</button>
+                      <input type="number" min={1} max={Math.max(1, product.stock)} value={quantityFor(product)} disabled={!product.stock} onChange={(event) => setQuantityDirect(product, Number(event.target.value))} aria-label="Miktar" />
+                      <button type="button" aria-label="Miktarı artır" disabled={!product.stock} onClick={() => changeQuantity(product, 1)}>＋</button>
+                    </div>
+                    <button className="button button-primary" type="button" disabled={!product.stock} onClick={() => handleAdd(product)}>{addedProductId === product.id ? "Eklendi" : "Sepete Ekle"}</button>
+                  </div>
                 ))}
               </div>
             )}
 
-            {visibleProducts.length > 0 && (
-              <div className="pagination">
-                <span>{data.length} üründen {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, data.length)} arası gösteriliyor</span>
-                <div>
-                  <button className="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)}>← Önceki</button>
-                  <span>Sayfa <strong>{page}</strong> / {totalPages}</span>
-                  <button className="button" disabled={page === totalPages} onClick={() => setPage((value) => value + 1)}>Sonraki →</button>
+            {visible.length > 0 && (
+              <div className="table-footer">
+                <div className="table-footer-info">
+                  <span>{filtered.length} kayıttan {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} arası</span>
+                  <label className="page-size">Sayfa boyutu
+                    <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>
+                      <option value={12}>12</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="table-pagination">
+                  <button type="button" disabled={safePage === 1} onClick={() => setPage((value) => value - 1)}>‹</button>
+                  {pageNumbers().map((number) => (
+                    <button type="button" key={number} className={number === safePage ? "active" : ""} onClick={() => setPage(number)}>{number}</button>
+                  ))}
+                  <button type="button" disabled={safePage === totalPages} onClick={() => setPage((value) => value + 1)}>›</button>
                 </div>
               </div>
             )}

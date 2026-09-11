@@ -4,24 +4,16 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import netsimLogo from "@/assets/netsim-logo.png";
 import { fetchMe, logout } from "@/features/auth/authApi";
 import { useCompanyContext } from "@/features/company-context/store";
-import { CompanyLogo } from "@/shared/components/CompanyLogo";
 import { portalService } from "@/shared/services/portalService";
 
 const navigation = [
-  ["Ana Menü", [["/dashboard", "Gösterge Paneli"]]],
-  ["Alışveriş", [["/urunler", "Ürünler"], ["/hizli-siparis", "Hızlı Sipariş"], ["/favoriler", "Favoriler"], ["/sepet", "Sepetim"]]],
-  ["Ticari İşlemler", [["/teklifler", "Tekliflerim"], ["/siparisler", "Siparişlerim"], ["/sevkiyatlar", "Sevkiyatlar"], ["/faturalar", "Faturalar"]]],
-  ["Finans", [["/finans", "Cari Hesap"]]],
+  ["Genel", [["/dashboard", "Ana Sayfa"], ["/urunler", "Ürünler"], ["/hizli-siparis", "Hızlı Sipariş"], ["/favoriler", "Favoriler"]]],
+  ["Satın Alma", [["/sepet", "Sepet"], ["/teklifler", "Teklifler"], ["/siparisler", "Siparişler"]]],
+  ["Finans", [["/sevkiyatlar", "Sevkiyatlar"], ["/faturalar", "Faturalar"], ["/finans", "Cari Hesap"]]],
   ["Diğer", [["/duyurular", "Duyurular"], ["/bildirimler", "Bildirimler"], ["/hesabim", "Hesabım"]]],
 ] as const;
 
 const UNREAD_NOTIFICATION_COUNT = 2;
-
-function initials(displayName: string | undefined) {
-  if (!displayName) return "…";
-  const parts = displayName.trim().split(/\s+/);
-  return parts.slice(0, 2).map((part) => part[0]?.toLocaleUpperCase("tr-TR")).join("");
-}
 
 export function AppShell() {
   const navigate = useNavigate();
@@ -51,7 +43,6 @@ export function AppShell() {
   }, [session, loadFavorites]);
   const allowedCariNos = new Set(session?.accounts.map((account) => account.cariNo) ?? []);
   const accounts = allAccounts.filter((account) => allowedCariNos.has(account.id));
-  const activeAccount = accounts.find((account) => account.id === activeCariNo);
   const unreadCount = notificationsRead ? 0 : UNREAD_NOTIFICATION_COUNT;
 
   async function handleLogout() {
@@ -97,30 +88,16 @@ export function AppShell() {
         <header className="topbar">
           <button className="menu-button" type="button" aria-label="Menüyü aç" onClick={() => setMobileOpen(true)}>☰</button>
           <div className="topbar-spacer" />
-          {activeAccount && (
-            <CompanyLogo
-              className="topbar-company-logo"
-              name={activeAccount.name}
-              logoUrl={activeAccount.logoUrl}
-              color={activeAccount.brandColor}
-            />
-          )}
           <label className="account-select">
-            <span>Aktif firma</span>
+            <span>Cari</span>
             <select value={activeCariNo} onChange={(event) => handleAccountChange(Number(event.target.value))}>
-              {accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}
+              {accounts.map((account) => <option value={account.id} key={account.id}>{account.id} — {account.name}</option>)}
             </select>
           </label>
-          <Link className={`topbar-icon${unreadCount ? " has-badge" : ""}`} to="/bildirimler" aria-label={unreadCount ? `Bildirimler, ${unreadCount} okunmamış` : "Bildirimler"}>
-            <span aria-hidden="true">●</span>
-            {unreadCount > 0 && <strong className="topbar-badge">{unreadCount}</strong>}
-          </Link>
-          <Link className="topbar-cart" to="/sepet" aria-label={`Sepet, ${cartCount} ürün`}>Sepet <strong>{cartCount}</strong></Link>
+          <Link className="topbar-action" to="/bildirimler" aria-label={unreadCount ? `Bildirimler, ${unreadCount} okunmamış` : "Bildirimler"}>Bildirimler ({unreadCount})</Link>
+          <Link className="topbar-action" to="/sepet" aria-label={`Sepet, ${cartCount} ürün`}>Sepet ({cartCount})</Link>
           <div className="profile-menu">
-            <Link className="profile-link" to="/hesabim">
-              <span className="avatar">{initials(session?.user.displayName)}</span>
-              <span className="profile-copy"><strong>{session?.user.displayName ?? "…"}</strong><small>{session?.user.email}</small></span>
-            </Link>
+            <Link className="profile-link" to="/hesabim">{session?.user.displayName ?? "…"}</Link>
             <button className="logout-button" type="button" onClick={handleLogout}>Çıkış</button>
           </div>
         </header>
