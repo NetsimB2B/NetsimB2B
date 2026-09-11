@@ -52,6 +52,48 @@ S0 / Plan — Ürünleştirme rotası yazıldı (`docs/00-project/URUNLESTIRME_R
       Hızlı Sipariş'teki "Sık sipariş verilen ürünler" ve Dashboard'daki "Sık Alınanlar"
       önerileri artık gerçek verili Favoriler listesinden besleniyor. Artık kullanılmayan
       `mocks/portalData.ts`'teki `products` mock dizisi de kaldırıldı.
+- [x] Faturalar: liste + detay artık Netsim'e bağlı (ALSAASIL/ALSADETA,
+      ISLEM_KODU='FATURA') — cari bazlı filtre, kaynak siparişe bağlantı
+      (REFERANS_ALISSATIS_NO → gerçek Siparişler kaydı, Siparişler'in Teklifler'e
+      bağlanmasıyla aynı desen) doğrulandı. "Ödendi"/"Açık"/"Vadesi Geçti" durumu
+      DURUM'a değil, BAKIYE (kalan borç) ve VADE_TARIHI'nden canlı hesaplanan mantığa
+      dayanıyor (Teklifler'in ValidUntil bazlı durumuyla aynı yaklaşım) — ödenen tutar da
+      GENEL_TOPLAM - BAKIYE olarak türetiliyor, ayrı bir alan gerekmedi. ACIKLAMA/
+      ODEME_BILGISI/BAKIYE/REFERANS_ALISSATIS_NO gerçek şema alanları ama netsim-dev
+      seed'inde boştu, `netsim-dev/V004__enrich_invoice_display_fields.sql` ile eski
+      frontend mock'undaki değerlerle dolduruldu. Satır bazlı KDV oranı (`KDV_ORANI`)
+      seed'de zaten doluydu, ek bir enrichment gerekmedi. `eInvoiceUuid` için ALSAASIL'in
+      hiçbir alanında karşılık bulunamadı (`Product.featured` ile aynı gerekçe) —
+      veritabanına taşınmadı, ilgili UI gösterimleri kaldırıldı. Mock'taki kurgusal
+      "B2B-2026-0988" siparişine bağlı "FTR-2026-1431" faturası artık sipariş linksiz
+      ("Manuel fatura") görünüyor — beklenen küçülme (bkz. Siparişlerim notu). Artık
+      kullanılmayan `mocks/portalData.ts`'teki `invoices` mock dizisi kaldırıldı —
+      doğrulandı, 2026-09-11.
+- [x] Finans / Cari Hesap: artık Netsim'e bağlı — ama `CARIKART`'ta bakiye/kredi limiti
+      alanı hiç yok, bu yüzden Faturalar'daki "boş kolonu doldur" yaklaşımı yetmedi; yeni
+      bir tablo (`NS_CARIKALI` — Cari Kart Limiti, `BLOKE_MAX`/`TOPLAM_RISK`) şema
+      dokümanından `netsim_ddl_gen.py`'a eklenip netsim-dev'e kazandırıldı, `NS_CARIISLM`
+      (cari hareket/ekstre — şemada vardı ama tamamen boştu) `netsim_seed_gen.py`'a eklenen
+      üretici ile eski frontend mock'undaki (`accounts`/`accountTransactions`) değerlerle
+      birebir seed edildi (bkz. `netsim_seed_gen.py` → `gen_cariislm_rows`/
+      `gen_carikali_rows`, ve çalışan container'a aynı SQL'i uygulayan
+      `finans_incremental.sql` — ayrı bir migration dosyası olarak commitlenmedi, V000/V001
+      zaten güncel hâliyle kaynak). `/api/finance/accounts` (tüm erişilebilir cariler —
+      `ICurrentCompanyContext.AllowedCariNos` yeni eklendi, tek aktif cariyle sınırlı değil)
+      ve `/api/finance/transactions` (aktif cari) backend'de çalışıyor. Bakiye =
+      `CARIKALI.TOPLAM_RISK`, kullanılabilir limit = `BLOKE_MAX - TOPLAM_RISK`. Vadesi geçen
+      tutar `CARIISLM`'den açık kalem netlemesiyle hesaplanıyor (aynı faturaya
+      `REFERANS_ALISSATIS_NO` ile bağlı borç/alacak satırları netleştirilir, yalnızca o
+      faturanın `DURUM`'u 'Vadesi Geçti' olan gruplar sayılır) — canlı Netsim trigger'ı
+      değil, bu mock seed'inin kendi tutarlılığına dayanıyor. `LIMIT_TURU` domain değeri
+      ('GENEL') ve açık kalem eşleştirme mantığı VARSAYIM, gerçek Netsim'de doğrulanmalı.
+      CARI_NO 1003 için mock'ta karşılık yoktu — makul bir limit profili verildi (gerçek
+      kaynağı yok, FIYALIST'teki 3. bayi fiyat çarpanıyla aynı gerekçe). `Account` tipindeki
+      `paymentTerm`/`riskGroup`/`accountManager`/`address`/`lastPaymentDate`/
+      `lastPaymentAmount`/`brandColor`/`logoUrl` alanları için şemada doğrulanmış karşılık
+      yok — bağlanmadı, UI'da "—" ile zarifçe gösteriliyor (Faturalar'daki `eInvoiceUuid`
+      ile aynı yaklaşım). `taxNumber` (`CARIKART.VERGI_NO`) bağlandı. Uçtan uca doğrulandı
+      (curl + tarayıcı, iki cari için de tutarlar mock'la birebir eşleşti), 2026-09-11.
 
 ## In Progress
 - [ ] FAZ B — Identity + cookie auth + membership
@@ -73,8 +115,8 @@ S0 / Plan — Ürünleştirme rotası yazıldı (`docs/00-project/URUNLESTIRME_R
       şema doğrulaması ya da Siparişler verisinden türetilen daha sade bir görünüm gerekir.
 
 ## Known TODO
-- Ürünler, Sepetim, Favoriler, Hızlı Sipariş, Teklifler ve Siparişlerim dışındaki modüller
-  (checkout/sevkiyat/fatura/cari hesap) hâlâ `portalService` mock
+- Ürünler, Sepetim, Favoriler, Hızlı Sipariş, Teklifler, Siparişlerim, Faturalar ve
+  Finans/Cari Hesap dışındaki modüller (checkout/sevkiyat) hâlâ `portalService` mock
 - Teklif "Kabul Edildi" durumu ve Teklif→Sipariş dönüşümünün ERP tarafında izlenmesi
   Siparişler modülü bağlanmadan tamamlanamaz (bkz. `docs/04-data/NETSIM_TABLO_HARİTASI.md`
   → ALSAASIL "Quote ERP ISLEM_KODU mapping" — gerçek Netsim'de TEKLIF/SIPARIS/FATURA kod
@@ -99,3 +141,15 @@ FAZ A tamamla (contract matrix + needs-netsim-api) → FAZ B1 PostgreSQL + Ident
 
 ## Last verified
 - Frontend: `tsc --noEmit`, `npm run lint` (2026-09-10, mock portal)
+- Faturalar uçtan uca doğrulandı (2026-09-11): `dotnet build` (backend, 0 hata),
+  `tsc --noEmit`/`npm run lint`/`vitest run` (frontend, temiz), `GET /api/invoices`
+  curl ile her iki cari için ayrı ayrı test edildi (durum/sipariş bağlantısı/tutarlar
+  doğru), tarayıcıda Faturalar liste + detay sayfaları (bağlı sipariş linkli ve linksiz
+  "Manuel fatura" durumu dahil) ve Excel export butonu hatasız çalıştı, konsolda hata yok
+- Finans/Cari Hesap uçtan uca doğrulandı (2026-09-11): `dotnet build` + `dotnet test`
+  (backend, 0 hata), `tsc --noEmit`/`npm run lint`/`vitest run` (frontend, temiz),
+  `GET /api/finance/accounts` + `/api/finance/transactions` curl ile iki cari için de
+  test edildi (bakiye/limit/vadesi geçen tutar eski mock'la birebir eşleşti — bir
+  netleme sorgusu hatası curl testinde yakalanıp düzeltildi, bkz. NetsimFinanceReadService
+  yorumları), tarayıcıda Finans sayfası + Dashboard kartları + firma değiştirme + Excel
+  export iki cari için de hatasız çalıştı, konsolda hata yok

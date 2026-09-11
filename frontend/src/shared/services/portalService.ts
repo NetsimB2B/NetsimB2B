@@ -1,5 +1,7 @@
-import { accountTransactions, accounts, invoices, shipments } from "@/mocks/portalData";
+import { shipments } from "@/mocks/portalData";
 import { useCompanyContext } from "@/features/company-context/store";
+import { fetchAccounts, fetchTransactions, type ApiAccount, type ApiCariTransaction } from "@/shared/api/financeApi";
+import { fetchInvoices, type ApiInvoice } from "@/shared/api/invoicesApi";
 import { fetchOrders, type ApiOrder } from "@/shared/api/ordersApi";
 import { fetchProduct, fetchProducts, type ApiProduct } from "@/shared/api/productsApi";
 import { fetchQuotes, type ApiQuote } from "@/shared/api/quotesApi";
@@ -29,6 +31,36 @@ const unitLabels: Record<string, string> = {
   PK: "Paket",
   KUTU: "Kutu",
 };
+
+function toAccount(item: ApiAccount): Account {
+  return {
+    id: item.cariNo,
+    name: item.cariAdi,
+    code: item.cariKodu,
+    balance: item.balance,
+    availableCredit: item.availableCredit,
+    overdueAmount: item.overdueAmount,
+    currency: "TRY",
+    taxNumber: item.taxNumber ?? undefined,
+  };
+}
+
+function toTransaction(item: ApiCariTransaction): AccountTransaction {
+  return {
+    id: item.id,
+    accountId: item.cariNo,
+    date: item.date,
+    dueDate: item.dueDate ?? undefined,
+    document: item.document,
+    documentType: item.documentType,
+    description: item.description ?? "",
+    debit: item.debit,
+    credit: item.credit,
+    balanceAfter: item.balanceAfter,
+    status: item.status,
+    relatedInvoiceId: item.relatedInvoiceId ?? undefined,
+  };
+}
 
 function toQuote(item: ApiQuote): Quote {
   return {
@@ -71,6 +103,31 @@ function toOrder(item: ApiOrder): Order {
   };
 }
 
+function toInvoice(item: ApiInvoice): Invoice {
+  return {
+    id: item.id,
+    accountId: item.cariNo,
+    date: item.createdAt,
+    dueDate: item.dueDate,
+    total: item.total,
+    status: item.status,
+    orderId: item.orderId ?? undefined,
+    paymentTerm: item.paymentTerm ?? "Belirtilmemiş",
+    paidAmount: item.paidAmount,
+    remainingAmount: item.remainingAmount,
+    taxExcluded: item.taxExcluded,
+    taxAmount: item.taxAmount,
+    currency: "TRY",
+    description: item.description ?? "—",
+    lines: item.lines.map((line) => ({
+      productId: line.productId,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      taxRate: line.taxRate,
+    })),
+  };
+}
+
 function toProduct(item: ApiProduct): Product {
   const category = item.category ?? "Diğer";
   return {
@@ -105,15 +162,13 @@ const delay = (ms = 260) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const portalService = {
   async getAccounts(): Promise<Account[]> {
-    await delay();
-    return accounts;
+    const items = await fetchAccounts();
+    return items.map(toAccount);
   },
 
   async getAccountTransactions(accountId: number): Promise<AccountTransaction[]> {
-    await delay();
-    return accountTransactions
-      .filter((item) => item.accountId === accountId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const items = await fetchTransactions(accountId);
+    return items.map(toTransaction);
   },
 
   async getProducts(accountId: number, query: ProductQuery = {}): Promise<Product[]> {
@@ -150,7 +205,8 @@ export const portalService = {
       const unitPrice = line.unitPrice ?? product.price;
       return sum + unitPrice * line.quantity;
     }, 0);
-    const account = accounts.find((item) => item.id === accountId);
+    const currentAccounts = await this.getAccounts();
+    const account = currentAccounts.find((item) => item.id === accountId);
     if (!account || total > account.availableCredit) {
       throw new Error("Kullanılabilir cari limit bu sipariş için yeterli değil.");
     }
@@ -188,7 +244,7 @@ export const portalService = {
   },
 
   async getInvoices(accountId: number): Promise<Invoice[]> {
-    await delay();
-    return invoices.filter((invoice) => invoice.accountId === accountId);
+    const items = await fetchInvoices(accountId);
+    return items.map(toInvoice);
   },
 };

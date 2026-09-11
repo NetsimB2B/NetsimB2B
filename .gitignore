@@ -10,6 +10,9 @@ frontend/.vite/
 *.user
 *.suo
 
+# Python (database/firebird/tools/*_gen.py)
+__pycache__/
+
 # Environment and secrets
 .env
 .env.*

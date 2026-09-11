@@ -718,13 +718,13 @@ export function FinancePage() {
           <span className="finance-account-badge" style={{ background: account.brandColor }}>{account.code.slice(-2)}</span>
           <div>
             <strong>{account.name}</strong>
-            <small>Vergi No: {account.taxNumber ?? "—"} · {account.address}</small>
+            <small>Vergi No: {account.taxNumber ?? "—"} · {account.address ?? "—"}</small>
           </div>
         </div>
         <div className="finance-account-meta">
-          <div><span>Ödeme Koşulu</span><strong>{account.paymentTerm}</strong></div>
-          <div><span>Risk Grubu</span><strong>Grup {account.riskGroup}</strong></div>
-          <div><span>Hesap Yöneticisi</span><strong>{account.accountManager}</strong></div>
+          <div><span>Ödeme Koşulu</span><strong>{account.paymentTerm ?? "—"}</strong></div>
+          <div><span>Risk Grubu</span><strong>{account.riskGroup ? `Grup ${account.riskGroup}` : "—"}</strong></div>
+          <div><span>Hesap Yöneticisi</span><strong>{account.accountManager ?? "—"}</strong></div>
           <div><span>Son Tahsilat</span><strong>{account.lastPaymentDate ? formatDate(account.lastPaymentDate) : "—"}</strong><small>{account.lastPaymentAmount ? formatMoney(account.lastPaymentAmount) : ""}</small></div>
         </div>
       </Card>
@@ -862,8 +862,8 @@ export function FinancePage() {
             <h3>Mutabakat ve Ödeme</h3>
             <p>Cari mutabakat, dekont veya ödeme bildirimi için finans ekibinize ulaşabilirsiniz.</p>
             <dl>
-              <div><dt>Hesap yöneticisi</dt><dd>{account.accountManager}</dd></div>
-              <div><dt>Ödeme koşulu</dt><dd>{account.paymentTerm}</dd></div>
+              <div><dt>Hesap yöneticisi</dt><dd>{account.accountManager ?? "—"}</dd></div>
+              <div><dt>Ödeme koşulu</dt><dd>{account.paymentTerm ?? "—"}</dd></div>
             </dl>
             <Link className="button button-primary" to="/destek">Ödeme Bildirimi Gönder</Link>
           </div>
@@ -1089,7 +1089,6 @@ export function InvoicesPage() {
                         <tr key={invoice.id}>
                           <td>
                             <Link to={`/faturalar/${invoice.id}`}>{invoice.id}</Link>
-                            <small>{invoice.eInvoiceUuid}</small>
                           </td>
                           <td>
                             <strong>{invoice.description}</strong>
@@ -1181,7 +1180,7 @@ export function InvoiceDetailPage() {
 
       <header className="invoice-detail-header">
         <div>
-          <span className="invoices-eyebrow">Satış Faturası · {invoice.eInvoiceUuid}</span>
+          <span className="invoices-eyebrow">Satış Faturası</span>
           <h1>{invoice.id}</h1>
           <p>{account?.name} adına düzenlenmiştir · {invoice.description}</p>
         </div>
@@ -1261,7 +1260,6 @@ export function InvoiceDetailPage() {
                 <h3>E-Fatura Bilgileri</h3>
                 <dl>
                   <div><dt>Fatura No</dt><dd>{invoice.id}</dd></div>
-                  <div><dt>UUID</dt><dd>{invoice.eInvoiceUuid}</dd></div>
                   <div><dt>Senaryo</dt><dd>Temel Fatura</dd></div>
                 </dl>
               </div>

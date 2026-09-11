@@ -1,144 +1,15 @@
-import type { Account, AccountTransaction, Invoice, Shipment } from "@/shared/types/portal";
+import type { Shipment } from "@/shared/types/portal";
 
-export const accounts: Account[] = [
-  {
-    id: 1001,
-    name: "Örnek Bayi A.Ş.",
-    code: "CR-1001",
-    balance: 184_250,
-    availableCredit: 315_750,
-    overdueAmount: 13_100,
-    currency: "TRY",
-    brandColor: "#315b8a",
-    paymentTerm: "30 Gün Vadeli",
-    riskGroup: "A",
-    accountManager: "Selin Yılmaz",
-    taxNumber: "1234567890",
-    address: "Merkez Mah. Sanayi Cad. No:12 İstanbul",
-    lastPaymentDate: "2026-09-02",
-    lastPaymentAmount: 50_000,
-  },
-  {
-    id: 1002,
-    name: "Marmara Endüstri Ltd.",
-    code: "CR-1002",
-    balance: 92_800,
-    availableCredit: 107_200,
-    overdueAmount: 14_350,
-    currency: "TRY",
-    brandColor: "#18785f",
-    paymentTerm: "Peşin / 15 Gün",
-    riskGroup: "B",
-    accountManager: "Emre Kaya",
-    taxNumber: "9876543210",
-    address: "Organize Sanayi Bölgesi 4. Cad. Bursa",
-    lastPaymentDate: "2026-09-01",
-    lastPaymentAmount: 20_000,
-  },
-];
-
-export const accountTransactions: AccountTransaction[] = [
-  { id: "TX-1001-09", accountId: 1001, date: "2026-09-08", dueDate: "2026-10-08", document: "FTR-2026-1482", documentType: "Fatura", description: "Satış faturası · Motor ve rulman · B2B-2026-1002", debit: 54_060, credit: 0, balanceAfter: 184_250, status: "Açık", relatedInvoiceId: "FTR-2026-1482" },
-  { id: "TX-1001-08", accountId: 1001, date: "2026-09-02", document: "THS-2026-0841", documentType: "Tahsilat", description: "Havale tahsilatı · Garanti BBVA", debit: 0, credit: 50_000, balanceAfter: 130_190, status: "Kapalı" },
-  { id: "TX-1001-07", accountId: 1001, date: "2026-08-24", dueDate: "2026-09-07", document: "FTR-2026-1431", documentType: "Fatura", description: "Satış faturası · Bakım malzemeleri · B2B-2026-0988", debit: 23_100, credit: 0, balanceAfter: 180_190, status: "Vadesi Geçti", relatedInvoiceId: "FTR-2026-1431" },
-  { id: "TX-1001-06", accountId: 1001, date: "2026-08-18", document: "THS-2026-0795", documentType: "Tahsilat", description: "Kısmi tahsilat · FTR-2026-1431", debit: 0, credit: 10_000, balanceAfter: 157_090, status: "Kısmi", relatedInvoiceId: "FTR-2026-1431" },
-  { id: "TX-1001-05", accountId: 1001, date: "2026-09-04", dueDate: "2026-10-04", document: "FTR-2026-1398", documentType: "Fatura", description: "Satış faturası · Redüktör · B2B-2026-1001", debit: 23_232, credit: 0, balanceAfter: 167_090, status: "Kapalı", relatedInvoiceId: "FTR-2026-1398" },
-  { id: "TX-1001-04", accountId: 1001, date: "2026-09-05", document: "THS-2026-0750", documentType: "Tahsilat", description: "Havale tahsilatı · FTR-2026-1398", debit: 0, credit: 23_232, balanceAfter: 143_858, status: "Kapalı", relatedInvoiceId: "FTR-2026-1398" },
-  { id: "TX-1001-03", accountId: 1001, date: "2026-08-05", document: "DKN-2026-0122", documentType: "Dekont", description: "Kur farkı düzeltme dekontu", debit: 850, credit: 0, balanceAfter: 167_090, status: "Kapalı" },
-  { id: "TX-1001-02", accountId: 1001, date: "2026-07-28", document: "IADE-2026-0041", documentType: "İade", description: "Ürün iade alacak fişi", debit: 0, credit: 4_200, balanceAfter: 166_240, status: "Kapalı" },
-  { id: "TX-1002-04", accountId: 1002, date: "2026-09-07", dueDate: "2026-10-07", document: "FTR-2026-1520", documentType: "Fatura", description: "Satış faturası · Pompa yenileme · B2B-2026-2001", debit: 36_570, credit: 0, balanceAfter: 92_800, status: "Açık", relatedInvoiceId: "FTR-2026-1520" },
-  { id: "TX-1002-03", accountId: 1002, date: "2026-09-01", document: "THS-2026-0812", documentType: "Tahsilat", description: "Havale tahsilatı · İş Bankası", debit: 0, credit: 20_000, balanceAfter: 56_230, status: "Kapalı" },
-  { id: "TX-1002-02", accountId: 1002, date: "2026-08-20", dueDate: "2026-09-04", document: "FTR-2026-1490", documentType: "Fatura", description: "Satış faturası · Hidrolik parçalar", debit: 14_350, credit: 0, balanceAfter: 76_230, status: "Vadesi Geçti" },
-  { id: "TX-1002-01", accountId: 1002, date: "2026-08-10", document: "CEK-2026-0088", documentType: "Çek", description: "Müşteri çeki tahsilatı", debit: 0, credit: 25_000, balanceAfter: 61_880, status: "Kapalı" },
-];
-
-// Ürün kataloğu, teklifler ve siparişler artık gerçek veritabanından geliyor (bkz.
-// shared/api/productsApi.ts, shared/api/quotesApi.ts, shared/api/ordersApi.ts). Aşağıdaki
-// sevkiyat/fatura mock verileri hâlâ B2B-2026-xxxx sipariş no'larına referans veriyor —
-// bunlar netsim-dev veritabanındaki gerçek siparişlerle (BELGE_NO) birebir eşleşecek
-// şekilde tasarlanmıştır (bkz. database/firebird/netsim-dev/README.md). "B2B-2026-0988"
-// siparişinin netsim-dev'de karşılığı yok (bkz. V003__enrich_order_display_fields.sql notu).
+// Ürün kataloğu, teklifler, siparişler, faturalar ve cari hesap (bakiye/limit/ekstre)
+// artık gerçek veritabanından geliyor (bkz. shared/api/productsApi.ts, quotesApi.ts,
+// ordersApi.ts, invoicesApi.ts, financeApi.ts). Aşağıdaki sevkiyat mock verisi hâlâ
+// B2B-2026-xxxx sipariş no'larına referans veriyor — bunlar netsim-dev veritabanındaki
+// gerçek siparişlerle (BELGE_NO) birebir eşleşecek şekilde tasarlanmıştır (bkz.
+// database/firebird/netsim-dev/README.md). "B2B-2026-0988" siparişinin netsim-dev'de
+// karşılığı yok (bkz. V003__enrich_order_display_fields.sql notu).
 
 export const shipments: Shipment[] = [
   { id: "SVK-2026-0088", accountId: 1001, orderId: "B2B-2026-1002", date: "2026-09-08T13:40:00Z", status: "Yolda", carrier: "Netsim Lojistik", trackingNo: "NTS2609080088", estimatedDelivery: "2026-09-11T14:00:00Z", origin: "Netsim İstanbul Merkez Depo", destination: "Merkez Mah. Sanayi Cad. No:12 İstanbul", packageCount: 3, totalWeight: 96.5, vehiclePlate: "34 NTS 088", driverName: "Murat Demir", events: [{ date: "2026-09-08T10:15:00Z", title: "Sevkiyat emri oluşturuldu", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-08T13:40:00Z", title: "Araç yüklemesi tamamlandı", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-09T08:20:00Z", title: "Dağıtım merkezinden çıktı", location: "İstanbul Avrupa Yakası", completed: true }, { date: "2026-09-11T14:00:00Z", title: "Planlanan teslimat", location: "Müşteri teslimat adresi", completed: false }] },
   { id: "SVK-2026-0081", accountId: 1001, orderId: "B2B-2026-1001", date: "2026-09-04T09:10:00Z", status: "Teslim Edildi", carrier: "Müşteri Aracı", trackingNo: "NTS2609040081", estimatedDelivery: "2026-09-04T15:00:00Z", deliveredAt: "2026-09-04T14:28:00Z", origin: "Netsim İstanbul Merkez Depo", destination: "Merkez Mah. Sanayi Cad. No:12 İstanbul", packageCount: 2, totalWeight: 28, vehiclePlate: "34 BAY 142", driverName: "Ahmet Kaya", events: [{ date: "2026-09-04T08:30:00Z", title: "Sipariş sevkiyata hazırlandı", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-04T09:10:00Z", title: "Müşteri aracına teslim edildi", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-04T14:28:00Z", title: "Teslimat tamamlandı", location: "Müşteri teslimat adresi", completed: true }] },
   { id: "SVK-2026-0094", accountId: 1002, orderId: "B2B-2026-2001", date: "2026-09-09T11:00:00Z", status: "Hazırlanıyor", carrier: "Netsim Lojistik", trackingNo: "NTS2609090094", estimatedDelivery: "2026-09-12T16:00:00Z", origin: "Netsim İstanbul Merkez Depo", destination: "Organize Sanayi Bölgesi 4. Cad. Bursa", packageCount: 1, totalWeight: 42, events: [{ date: "2026-09-09T11:00:00Z", title: "Sevkiyat emri oluşturuldu", location: "İstanbul Merkez Depo", completed: true }, { date: "2026-09-10T09:00:00Z", title: "Araç yükleme planı", location: "İstanbul Merkez Depo", completed: false }, { date: "2026-09-12T16:00:00Z", title: "Planlanan teslimat", location: "Bursa OSB", completed: false }] },
-];
-
-export const invoices: Invoice[] = [
-  {
-    id: "FTR-2026-1482",
-    accountId: 1001,
-    date: "2026-09-08",
-    dueDate: "2026-10-08",
-    total: 54_060,
-    status: "Açık",
-    orderId: "B2B-2026-1002",
-    eInvoiceUuid: "8F3A-2026-1482-NETS",
-    paymentTerm: "30 Gün Vadeli",
-    paidAmount: 0,
-    remainingAmount: 54_060,
-    taxExcluded: 45_050,
-    taxAmount: 9_010,
-    currency: "TRY",
-    description: "Motor ve rulman siparişi satış faturası",
-    lines: [
-      { productId: 1, quantity: 3, unitPrice: 12_450, taxRate: 20 },
-      { productId: 7, quantity: 20, unitPrice: 385, taxRate: 20 },
-    ],
-  },
-  {
-    id: "FTR-2026-1431",
-    accountId: 1001,
-    date: "2026-08-24",
-    dueDate: "2026-09-07",
-    total: 23_100,
-    status: "Vadesi Geçti",
-    orderId: "B2B-2026-0988",
-    eInvoiceUuid: "8F3A-2026-1431-NETS",
-    paymentTerm: "14 Gün Vadeli",
-    paidAmount: 10_000,
-    remainingAmount: 13_100,
-    taxExcluded: 19_250,
-    taxAmount: 3_850,
-    currency: "TRY",
-    description: "Bakım malzemeleri satış faturası",
-    lines: [{ productId: 7, quantity: 50, unitPrice: 385, taxRate: 20 }],
-  },
-  {
-    id: "FTR-2026-1398",
-    accountId: 1001,
-    date: "2026-09-04",
-    dueDate: "2026-10-04",
-    total: 23_232,
-    status: "Ödendi",
-    orderId: "B2B-2026-1001",
-    eInvoiceUuid: "8F3A-2026-1398-NETS",
-    paymentTerm: "Havale / EFT",
-    paidAmount: 23_232,
-    remainingAmount: 0,
-    taxExcluded: 19_360,
-    taxAmount: 3_872,
-    currency: "TRY",
-    description: "Panel siparişi satış faturası",
-    lines: [{ productId: 4, quantity: 2, unitPrice: 9_680, taxRate: 20 }],
-  },
-  {
-    id: "FTR-2026-1520",
-    accountId: 1002,
-    date: "2026-09-07",
-    dueDate: "2026-10-07",
-    total: 36_570,
-    status: "Açık",
-    orderId: "B2B-2026-2001",
-    eInvoiceUuid: "8F3A-2026-1520-NETS",
-    paymentTerm: "Peşin",
-    paidAmount: 0,
-    remainingAmount: 36_570,
-    taxExcluded: 30_475,
-    taxAmount: 6_095,
-    currency: "TRY",
-    description: "Pompa yenileme satış faturası",
-    lines: [{ productId: 3, quantity: 1, unitPrice: 30_475, taxRate: 20 }],
-  },
 ];

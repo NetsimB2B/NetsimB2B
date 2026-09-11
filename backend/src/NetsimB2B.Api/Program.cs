@@ -4,6 +4,8 @@ using NetsimB2B.Api.Security;
 using NetsimB2B.Application.Abstractions.Security;
 using NetsimB2B.Infrastructure;
 
+LoadDotEnv();
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
@@ -59,8 +61,47 @@ app.MapCartEndpoints();
 app.MapFavoriteEndpoints();
 app.MapQuoteEndpoints();
 app.MapOrderEndpoints();
+app.MapInvoiceEndpoints();
+app.MapFinanceEndpoints();
 
 app.Run();
+
+// dotnet run does not source shell env files; repo root .env is the local dev source
+// of truth for ConnectionStrings__* (matches docker-compose's env_file convention).
+static void LoadDotEnv()
+{
+    var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (directory is not null && !File.Exists(Path.Combine(directory.FullName, ".env")))
+    {
+        directory = directory.Parent;
+    }
+
+    if (directory is null)
+    {
+        return;
+    }
+
+    foreach (var line in File.ReadLines(Path.Combine(directory.FullName, ".env")))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#'))
+        {
+            continue;
+        }
+
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex < 0)
+        {
+            continue;
+        }
+
+        var key = line[..separatorIndex].Trim();
+        var value = line[(separatorIndex + 1)..].Trim();
+        if (Environment.GetEnvironmentVariable(key) is null)
+        {
+            Environment.SetEnvironmentVariable(key, value);
+        }
+    }
+}
 
 public partial class Program;
 

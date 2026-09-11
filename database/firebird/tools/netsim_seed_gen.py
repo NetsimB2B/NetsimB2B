@@ -26,14 +26,20 @@ OUTPUT_PATH = Path(__file__).resolve().parents[1] / "netsim-dev" / "V001__netsim
 SEED = 42
 
 TABLES_NEEDED = [
-    "NS_FIRMALAR", "NS_CARIKART", "NS_STOKMARK", "NS_STOKURHA", "NS_BIRIMLER",
-    "NS_STOKKART", "NS_STOKBIRI", "NS_STOKYERI", "NS_STOKKADE", "NS_FIYALIST",
-    "NS_FIYADETA", "NS_ALSAASIL", "NS_ALSADETA",
+    "NS_FIRMALAR", "NS_CARIKART", "NS_CARIISLM", "NS_CARIKALI", "NS_STOKMARK",
+    "NS_STOKURHA", "NS_BIRIMLER", "NS_STOKKART", "NS_STOKBIRI", "NS_STOKYERI",
+    "NS_STOKKADE", "NS_FIYALIST", "NS_FIYADETA", "NS_ALSAASIL", "NS_ALSADETA",
 ]
 
 # ⚠️ VARSAYIM — Netsim'den doğrulanacak: gerçek işlem kodu değerlerini bilmiyoruz.
 ISLEM_KODU = {"TEKLIF": "TEKLIF", "SIPARIS": "SIPARIS", "FATURA": "FATURA"}
 ISLEM_ADI = {"TEKLIF": "Satış Teklifi", "SIPARIS": "Satış Siparişi", "FATURA": "Satış Faturası"}
+# ⚠️ VARSAYIM: CARIISLM.ISLEM_KODU için cari hareket türü kodları — gerçek Netsim
+# kurulumunda farklı olabilir (bkz. NS_ALSAASIL.ISLEM_KODU'ndaki aynı gerekçe).
+CARI_ISLEM_KODU = {
+    "Fatura": "FATURA", "Tahsilat": "TAHSILAT", "İade": "IADE",
+    "Dekont": "DEKONT", "Çek": "CEK",
+}
 # ⚠️ VARSAYIM: satış yönünü ifade eden kod (1 = satış/çıkış).
 ISLEM_YONU_SATIS = 1
 # ⚠️ VARSAYIM: KDV oranı ve fiyat türü kodu — gerçek FTKDVORAN / FTFIYATTURU domain değerleri doğrulanmadı.
@@ -267,6 +273,99 @@ def gen_carikart_rows() -> list[dict]:
     return rows
 
 
+# Cari hareket/ekstre: eski frontend mock'undaki (mocks/portalData.ts ->
+# accountTransactions) değerlerle birebir aynı — bkz. netsim-dev/README.md
+# V004 notundaki aynı yaklaşım (Faturalar). REFERANS_ALISSATIS_NO, DOCUMENTS
+# listesindeki karşılık gelen FATURA kaydına işaret eder (kaynağı olmayanlar
+# NULL bırakılır — "B2B-2026-0988" ve "FTR-2026-1490" gibi mock'ta var ama
+# netsim-dev'de karşılığı olmayan kayıtlarla aynı durum).
+CARI_HAREKETLER = [
+    {"no": 1, "cari_no": 1001, "tarih": "2026-09-08", "vade": "2026-10-08",
+     "belge_no": "FTR-2026-1482", "tur": "Fatura", "borc": 54_060, "alacak": 0,
+     "bakiye": 184_250, "durum": "Açık",
+     "aciklama": "Satış faturası · Motor ve rulman · B2B-2026-1002", "referans_alissatis_no": 7},
+    {"no": 2, "cari_no": 1001, "tarih": "2026-09-02", "vade": None,
+     "belge_no": "THS-2026-0841", "tur": "Tahsilat", "borc": 0, "alacak": 50_000,
+     "bakiye": 130_190, "durum": "Kapalı", "aciklama": "Havale tahsilatı · Garanti BBVA"},
+    {"no": 3, "cari_no": 1001, "tarih": "2026-08-24", "vade": "2026-09-07",
+     "belge_no": "FTR-2026-1431", "tur": "Fatura", "borc": 23_100, "alacak": 0,
+     "bakiye": 180_190, "durum": "Vadesi Geçti",
+     "aciklama": "Satış faturası · Bakım malzemeleri · B2B-2026-0988", "referans_alissatis_no": 8},
+    {"no": 4, "cari_no": 1001, "tarih": "2026-08-18", "vade": None,
+     "belge_no": "THS-2026-0795", "tur": "Tahsilat", "borc": 0, "alacak": 10_000,
+     "bakiye": 157_090, "durum": "Kısmi", "aciklama": "Kısmi tahsilat · FTR-2026-1431",
+     "referans_alissatis_no": 8},
+    {"no": 5, "cari_no": 1001, "tarih": "2026-09-04", "vade": "2026-10-04",
+     "belge_no": "FTR-2026-1398", "tur": "Fatura", "borc": 23_232, "alacak": 0,
+     "bakiye": 167_090, "durum": "Kapalı",
+     "aciklama": "Satış faturası · Redüktör · B2B-2026-1001", "referans_alissatis_no": 9},
+    {"no": 6, "cari_no": 1001, "tarih": "2026-09-05", "vade": None,
+     "belge_no": "THS-2026-0750", "tur": "Tahsilat", "borc": 0, "alacak": 23_232,
+     "bakiye": 143_858, "durum": "Kapalı", "aciklama": "Havale tahsilatı · FTR-2026-1398",
+     "referans_alissatis_no": 9},
+    {"no": 7, "cari_no": 1001, "tarih": "2026-08-05", "vade": None,
+     "belge_no": "DKN-2026-0122", "tur": "Dekont", "borc": 850, "alacak": 0,
+     "bakiye": 167_090, "durum": "Kapalı", "aciklama": "Kur farkı düzeltme dekontu"},
+    {"no": 8, "cari_no": 1001, "tarih": "2026-07-28", "vade": None,
+     "belge_no": "IADE-2026-0041", "tur": "İade", "borc": 0, "alacak": 4_200,
+     "bakiye": 166_240, "durum": "Kapalı", "aciklama": "Ürün iade alacak fişi"},
+    {"no": 9, "cari_no": 1002, "tarih": "2026-09-07", "vade": "2026-10-07",
+     "belge_no": "FTR-2026-1520", "tur": "Fatura", "borc": 36_570, "alacak": 0,
+     "bakiye": 92_800, "durum": "Açık",
+     "aciklama": "Satış faturası · Pompa yenileme · B2B-2026-2001", "referans_alissatis_no": 10},
+    {"no": 10, "cari_no": 1002, "tarih": "2026-09-01", "vade": None,
+     "belge_no": "THS-2026-0812", "tur": "Tahsilat", "borc": 0, "alacak": 20_000,
+     "bakiye": 56_230, "durum": "Kapalı", "aciklama": "Havale tahsilatı · İş Bankası"},
+    {"no": 11, "cari_no": 1002, "tarih": "2026-08-20", "vade": "2026-09-04",
+     "belge_no": "FTR-2026-1490", "tur": "Fatura", "borc": 14_350, "alacak": 0,
+     "bakiye": 76_230, "durum": "Vadesi Geçti", "aciklama": "Satış faturası · Hidrolik parçalar"},
+    {"no": 12, "cari_no": 1002, "tarih": "2026-08-10", "vade": None,
+     "belge_no": "CEK-2026-0088", "tur": "Çek", "borc": 0, "alacak": 25_000,
+     "bakiye": 61_880, "durum": "Kapalı", "aciklama": "Müşteri çeki tahsilatı"},
+]
+
+
+def gen_cariislm_rows() -> list[dict]:
+    rows = []
+    for h in CARI_HAREKETLER:
+        row = {
+            "CARI_ISLEM_NO": h["no"], "CARI_NO": h["cari_no"], "TARIH": f"{h['tarih']} 00:00:00",
+            "BELGE_NO": h["belge_no"], "ISLEM_KODU": CARI_ISLEM_KODU[h["tur"]],
+            "ISLEM_ADI": h["tur"], "BORC": float(h["borc"]), "ALACAK": float(h["alacak"]),
+            "BAKIYE": float(h["bakiye"]), "GENEL_BAKIYE": float(h["bakiye"]),
+            "DURUM": h["durum"], "ACIKLAMA": h["aciklama"], "DOVIZ_BIRIMI": "TRY",
+            "KAYIT_DURUMU": "A",
+        }
+        if h["vade"]:
+            row["VADE_TARIHI"] = h["vade"]
+        if h.get("referans_alissatis_no"):
+            row["REFERANS_ALISSATIS_NO"] = h["referans_alissatis_no"]
+        rows.append(row)
+    return rows
+
+
+# Kredi limiti: BLOKE_MAX (tavan) - TOPLAM_RISK (güncel bakiye) = kullanılabilir limit.
+# Değerler eski frontend mock'undaki (mocks/portalData.ts -> accounts) balance/
+# availableCredit ile tutarlı (limit = balance + availableCredit). CARI_NO 1003 için
+# mock'ta karşılık yoktu (bkz. netsim-dev/README.md) — FIYALIST'teki 3. bayi fiyat
+# çarpanıyla aynı gerekçeyle makul bir profil verildi, gerçek bir kaynağı yok.
+# ⚠️ VARSAYIM: LIMIT_TURU domain değeri doğrulanmadı, "GENEL" kullanıldı.
+CARI_LIMITLER = [
+    {"cari_no": 1001, "bloke_max": 500_000, "toplam_risk": 184_250},
+    {"cari_no": 1002, "bloke_max": 200_000, "toplam_risk": 92_800},
+    {"cari_no": 1003, "bloke_max": 350_000, "toplam_risk": 0},
+]
+
+
+def gen_carikali_rows() -> list[dict]:
+    return [{
+        "CARI_KART_LIMIT_NO": i, "CARI_NO": c["cari_no"], "FIRMA_NO": 1,
+        "LIMIT_TURU": "GENEL", "BLOKE_MAX": float(c["bloke_max"]),
+        "TOPLAM_RISK": float(c["toplam_risk"]), "TOPLAM": float(c["toplam_risk"]),
+        "GUNCELLEME_TARIHI": "2026-09-08 00:00:00",
+    } for i, c in enumerate(CARI_LIMITLER, start=1)]
+
+
 def gen_stokmark_rows() -> list[dict]:
     return [{"MARKA_NO": no, "MARKA_KODU": kod, "MARKA_ADI": adi, "KAYIT_DURUMU": "A", "WEB_AKTIF": "E"}
             for no, kod, adi in BRANDS]
@@ -451,6 +550,8 @@ def generate() -> str:
     ]
     parts.append(render_table_rows(objects["NS_FIRMALAR"], gen_firmalar_rows(), "1 firma"))
     parts.append(render_table_rows(objects["NS_CARIKART"], gen_carikart_rows(), "3 bayi cari"))
+    parts.append(render_table_rows(objects["NS_CARIISLM"], gen_cariislm_rows(), f"{len(CARI_HAREKETLER)} cari hareketi (ekstre)"))
+    parts.append(render_table_rows(objects["NS_CARIKALI"], gen_carikali_rows(), f"{len(CARI_LIMITLER)} cari için kredi limiti"))
     parts.append(render_table_rows(objects["NS_STOKMARK"], gen_stokmark_rows(), f"{len(BRANDS)} marka"))
     parts.append(render_table_rows(objects["NS_STOKURHA"], gen_stokurha_rows(), f"{len(CATEGORIES)} ürün hattı"))
     parts.append(render_table_rows(objects["NS_BIRIMLER"], gen_birimler_rows(), f"{len(UNITS)} birim"))

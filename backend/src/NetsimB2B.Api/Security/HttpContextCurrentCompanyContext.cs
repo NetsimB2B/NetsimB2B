@@ -22,10 +22,7 @@ internal sealed class HttpContextCurrentCompanyContext(IHttpContextAccessor http
                 ?? throw new InvalidOperationException("Aktif bir HTTP isteği yok.");
             var user = httpContext.User;
 
-            var allowed = user.Claims
-                .Where(c => c.Type == CariClaimTypes.CariNo)
-                .Select(c => long.Parse(c.Value))
-                .ToHashSet();
+            var allowed = AllowedCariNos;
 
             var defaultClaim = user.Claims.FirstOrDefault(c => c.Type == CariClaimTypes.DefaultCariNo)
                 ?? throw new InvalidOperationException("Oturumda varsayılan cari bilgisi yok.");
@@ -39,6 +36,20 @@ internal sealed class HttpContextCurrentCompanyContext(IHttpContextAccessor http
             }
 
             return defaultCariNo;
+        }
+    }
+
+    public IReadOnlyCollection<long> AllowedCariNos
+    {
+        get
+        {
+            var httpContext = httpContextAccessor.HttpContext
+                ?? throw new InvalidOperationException("Aktif bir HTTP isteği yok.");
+
+            return httpContext.User.Claims
+                .Where(c => c.Type == CariClaimTypes.CariNo)
+                .Select(c => long.Parse(c.Value))
+                .ToHashSet();
         }
     }
 }

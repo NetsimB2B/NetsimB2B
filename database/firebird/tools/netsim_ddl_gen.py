@@ -29,6 +29,7 @@ TABLES: dict[str, str] = {
     "NS_FIRMALAR": "Firma bilgisi; fatura/teklif başlıklarında ve tenant ayrımında kullanılır.",
     "NS_CARIKART": "Bayi/müşteri cari kartı; portal oturumu bir CARI_NO'ya bağlanır (company-context).",
     "NS_CARIISLM": "Cari hareket/bakiye geçmişi; cari ekstresi ve borç/alacak özetleri için gerekir.",
+    "NS_CARIKALI": "Cari kredi limiti (BLOKE_MAX/TOPLAM_RISK); Finans ekranındaki kullanılabilir limit için gerekir — CARIKART'ta limit alanı yok.",
     "NS_STOKKART": "Ürün ana kartı; ürün listeleme/arama (NetsimProductReadService) STOKKART view'ı üzerinden buna bağlanır.",
     "NS_STOKKADE": "Depo bazlı stok miktarı; 'stokta var/yok' göstergesi ve miktar sorguları burada.",
     "NS_STOKBIRI": "Stok birim tanımı (BIRIM, katsayı); ürün kartında NS_STOKKART'ta olmayan BIRIM burada saklanır.",
@@ -58,6 +59,7 @@ TABLES: dict[str, str] = {
 COMPAT_VIEWS: dict[str, str] = {
     "CARIKART": "NS_CARIKART",
     "CARIISLM": "NS_CARIISLM",
+    "CARIKALI": "NS_CARIKALI",
     "STOKKART": "NS_STOKKART",
     "STOKKADE": "NS_STOKKADE",
     "STOKASIL": "NS_STOKASIL",
